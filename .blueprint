@@ -1,2 +1,25 @@
+created:
+    - database/factories/TenantFactory.php
+    - database/factories/ClientFactory.php
+    - database/factories/InvoiceFactory.php
+    - database/factories/HourFactory.php
+    - database/migrations/2025_03_03_033722_create_tenants_table.php
+    - database/migrations/2025_03_03_033723_create_clients_table.php
+    - database/migrations/2025_03_03_033724_create_invoices_table.php
+    - database/migrations/2025_03_03_033725_create_hours_table.php
+    - database/migrations/2025_03_03_033726_create_tenant_user_table.php
+    - app/Models/Tenant.php
+    - app/Models/Client.php
+    - app/Models/Invoice.php
+    - app/Models/Hour.php
+    - database/seeders/TenantSeeder.php
+    - database/seeders/UserSeeder.php
+    - database/seeders/ClientSeeder.php
+    - database/seeders/InvoiceSeeder.php
+    - database/seeders/HourSeeder.php
 models:
     User: { name: string, email: string, email_verified_at: 'timestamp nullable', password: string, remember_token: 'string:100 nullable' }
+    Tenant: { id: id, name: string, timestamps: timestamp, relationships: { hasMany: 'Client, Invoice, Hour', belongsToMany: User } }
+    Client: { id: id, tenant_id: 'id foreign:tenants', user_id: 'id foreign:users', business_name: string, address: text, business_phone: 'string nullable', business_email: 'string nullable', tax_id: 'string nullable', website: 'string nullable', default_rate: 'decimal:10,2 default:150.00', contact_name: string, contact_title: 'string nullable', contact_email: string, contact_phone: 'string nullable', send_invoices_to_contact: 'boolean default:true', payment_terms_days: 'integer default:14', invoice_notes: 'text nullable', internal_notes: 'text nullable', code: 'string:10 unique', timestamps: timestamp, relationships: { belongsTo: 'Tenant, User', hasMany: 'Invoice, TimeEntry' } }
+    Invoice: { id: id, tenant_id: 'id foreign:tenants', user_id: 'id foreign:users', client_id: 'id foreign:clients', number: 'string unique', date: date, due_date: date, reference: string, description: text, amount: 'decimal:10,2', status: string, timestamps: timestamp, relationships: { belongsTo: 'Client, Tenant', hasMany: TimeEntry } }
+    Hour: { id: id, tenant_id: 'id foreign:tenants', user_id: 'id foreign:users', client_id: 'id foreign:clients', invoice_id: 'id foreign:invoices nullable', date: date, hours: 'decimal:5,2', rate: 'decimal:10,2 default:150.00', description: text, is_billable: 'boolean default:true', timestamps: timestamp, relationships: { belongsTo: 'Client, Invoice, Tenant' } }

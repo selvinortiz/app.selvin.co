@@ -17,7 +17,8 @@ class HourResource extends Resource
 {
     protected static ?string $model = Hour::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static ?int $navigationSort = 30;
 
     public static function form(Form $form): Form
     {

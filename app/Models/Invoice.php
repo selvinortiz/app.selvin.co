@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\InvoiceStatus;
 use App\Models\Concerns\HasUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ class Invoice extends Model
         'date' => 'date',
         'due_date' => 'date',
         'amount' => 'decimal:2',
+        'status' => InvoiceStatus::class,
     ];
 
     public function client(): BelongsTo

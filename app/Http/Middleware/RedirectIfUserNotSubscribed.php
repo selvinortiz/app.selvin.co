@@ -15,6 +15,7 @@ class RedirectIfUserNotSubscribed
      */
     public function handle(Request $request, Closure $next): Response
     {
+        /* @todo: Check if user is subscribed */
         return $next($request);
     }
 }

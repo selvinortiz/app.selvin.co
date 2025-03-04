@@ -21,57 +21,109 @@ class ClientResource extends Resource
     {
         return $form
             ->schema([
-                // Forms\Components\Select::make('tenant_id')
-                //     ->relationship('tenant', 'name')
-                //     ->required(),
-                // Forms\Components\Select::make('user_id')
-                //     ->relationship('user', 'name')
-                //     ->required(),
-                Forms\Components\TextInput::make('business_name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('address')
-                    ->required()
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('business_phone')
-                    ->tel()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('business_email')
-                    ->email()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('tax_id')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('website')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('default_rate')
-                    ->required()
-                    ->numeric()
-                    ->default(150),
-                Forms\Components\TextInput::make('contact_name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('contact_title')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('contact_email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('contact_phone')
-                    ->tel()
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('send_invoices_to_contact')
-                    ->required(),
-                Forms\Components\TextInput::make('payment_terms_days')
-                    ->required()
-                    ->numeric()
-                    ->default(14),
-                Forms\Components\Textarea::make('invoice_notes')
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('internal_notes')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('code')
-                    ->required()
-                    ->maxLength(10),
+                Forms\Components\Section::make('Business Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('business_name')
+                            ->label('Name')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpan(2),
+
+                        Forms\Components\TextInput::make('code')
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true)
+                            ->helperText('Format: ABC123'),
+
+                        Forms\Components\TextInput::make('website')
+                            ->url()
+                            ->maxLength(255),
+
+                        Forms\Components\Textarea::make('address')
+                            ->required()
+                            ->columnSpan(2),
+
+                        Forms\Components\TextInput::make('business_phone')
+                            ->label('Phone')
+                            ->tel()
+                            ->maxLength(255),
+
+                        Forms\Components\TextInput::make('business_email')
+                            ->label('Email')
+                            ->email()
+                            ->maxLength(255),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
+                Forms\Components\Section::make('Primary Contact')
+                    ->schema([
+                        Forms\Components\TextInput::make('contact_name')
+                            ->label('Name')
+                            ->required()
+                            ->maxLength(255),
+
+                        Forms\Components\TextInput::make('contact_title')
+                            ->label('Title')
+                            ->maxLength(255),
+
+                        Forms\Components\TextInput::make('contact_email')
+                            ->label('Email')
+                            ->required()
+                            ->email()
+                            ->maxLength(255),
+
+                        Forms\Components\TextInput::make('contact_phone')
+                            ->label('Phone')
+                            ->tel()
+                            ->maxLength(255),
+
+                        Forms\Components\Toggle::make('send_invoices_to_contact')
+                            ->label('Send Invoices to Contact')
+                            ->default(true)
+                            ->helperText('Send invoices to contact email instead of business email')
+                            ->columnSpan(2),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
+                Forms\Components\Section::make('Billing Preferences')
+                    ->schema([
+                        Forms\Components\TextInput::make('default_rate')
+                            ->label('Hourly Rate')
+                            ->numeric()
+                            ->prefix('$')
+                            ->default(150.00)
+                            ->required()
+                            ->helperText('Default rate for new time entries'),
+
+                        Forms\Components\TextInput::make('payment_terms_days')
+                            ->label('Payment Terms')
+                            ->helperText('Days until payment is due')
+                            ->numeric()
+                            ->default(14)
+                            ->required(),
+
+                        Forms\Components\TextInput::make('tax_id')
+                            ->label('Tax ID')
+                            ->helperText('EIN or SSN')
+                            ->maxLength(255)
+                            ->columnSpan(2),
+
+                        Forms\Components\Textarea::make('invoice_notes')
+                            ->label('Invoice Notes')
+                            ->helperText('Default notes to appear on all invoices')
+                            ->rows(3)
+                            ->columnSpan(2),
+
+                        Forms\Components\Textarea::make('internal_notes')
+                            ->label('Internal Notes')
+                            ->helperText('Notes for internal reference only')
+                            ->rows(3)
+                            ->columnSpan(2),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
             ]);
     }
 
@@ -79,57 +131,33 @@ class ClientResource extends Resource
     {
         return $table
             ->columns([
-                // Tables\Columns\TextColumn::make('tenant.name')
-                //     ->numeric()
-                //     ->sortable(),
-                // Tables\Columns\TextColumn::make('user.name')
-                //     ->numeric()
-                //     ->sortable(),
                 Tables\Columns\TextColumn::make('business_name')
                     ->label('Business')
-                    ->searchable(),
-                // Tables\Columns\TextColumn::make('business_phone')
-                //     ->label('Phone')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('business_email')
-                //     ->label('Email')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('tax_id')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('website')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('default_rate')
-                //     ->numeric()
-                //     ->sortable(),
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('code')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('contact_name')
                     ->label('Contact')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('contact_email')
+                    ->label('Email')
                     ->searchable(),
-                // Tables\Columns\TextColumn::make('contact_title')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('contact_email')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('contact_phone')
-                //     ->searchable(),
-                // Tables\Columns\IconColumn::make('send_invoices_to_contact')
-                //     ->boolean(),
-                Tables\Columns\TextColumn::make('code')
-                ->searchable(),
+
                 Tables\Columns\TextColumn::make('default_rate')
                     ->label('Rate')
-                    ->numeric()
+                    ->money()
                     ->sortable(),
+
                 Tables\Columns\TextColumn::make('payment_terms_days')
                     ->label('Terms')
-                    ->numeric()
+                    ->formatStateUsing(fn (int $state): string => "{$state} days")
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

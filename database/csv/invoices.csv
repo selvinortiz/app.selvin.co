@@ -1,0 +1,16 @@
+id,user_id,number,date,due_date,reference,client_id,description,amount,status,created_at,updated_at
+1,1,224MOD20241231,2024-12-31,2025-01-15,TLDEC2024,1,"Tech Lead Mod Interactive
+Statewide CMS Upgrade / FanEngage App",9600.00,paid,2025-01-05 04:48:20,2025-01-30 15:49:21
+2,1,227RES20250112,2025-01-12,2025-03-15,GBLJAN2025,2,"Professional Services for January 2025
+
+- Gables code review with Brennen (Part 1)
+- Gables code review with Brennen (Part 2)
+- Gables code review summary draft
+- Discovery call with Resi and Gables team
+
+Total Hours (3)",450.00,sent,2025-01-12 04:17:04,2025-02-28 23:09:02
+3,1,224MOD20250131,2025-01-31,2025-02-15,TLJAN2025,1,Tech Lead Mod Interactive / Statewide Enhancements / Code Audits / Scopes and Estimates,10150.00,paid,2025-02-01 03:47:55,2025-02-25 03:51:26
+4,1,227RES20250228,2025-02-28,2025-03-15,TLFEB2025,2,"Work was focused on Resi v2 architecture, multitenancy, and permissions, along with code analysis and audits to refine the platform’s foundation. Development meetings and code reviews helped align implementation details, while pushing early work on the unified dashboard and neighborhood maps.
+
+Total Hours (27)",4050.00,sent,2025-02-28 23:00:25,2025-02-28 23:07:06
+5,1,224MOD20250228,2025-02-28,2025-03-15,TLFEB2025,1,Tech Lead Mod Interactive / Statewide Enhancements / Code Audits / Scopes and Estimates / FanEngage,10075.00,sent,2025-02-28 23:11:00,2025-02-28 23:11:00

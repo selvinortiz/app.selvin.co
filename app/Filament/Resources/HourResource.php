@@ -59,8 +59,9 @@ class HourResource extends Resource
                         Forms\Components\TextInput::make('hours')
                             ->required()
                             ->numeric()
-                            ->step(0.25)
-                            ->minValue(0.25)
+                            ->mask('99.9')
+                            ->step(0.5)
+                            ->minValue(0.5)
                             ->maxValue(24)
                             ->suffix('hours')
                             ->helperText('Enter time in decimal hours (e.g., 1.5 for 1 hour 30 minutes)'),
@@ -70,8 +71,8 @@ class HourResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('$')
-                            ->step(0.01)
-                            ->default(100)
+                            ->step(1)
+                            ->default(150)
                             ->helperText('Default rate is set based on client preferences'),
 
                         Forms\Components\Toggle::make('is_billable')
@@ -116,7 +117,7 @@ class HourResource extends Resource
 
                 Tables\Columns\TextColumn::make('hours')
                     ->label('Time')
-                    ->numeric(2)
+                    ->numeric(1)
                     ->sortable()
                     ->suffix(' hrs')
                     ->alignRight(),

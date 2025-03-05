@@ -44,8 +44,8 @@ class Invoice extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function timeEntries(): HasMany
+    public function hours(): HasMany
     {
-        return $this->hasMany(TimeEntry::class);
+        return $this->hasMany(Hour::class);
     }
 }

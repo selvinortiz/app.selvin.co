@@ -8,6 +8,7 @@ use App\Helpers\InvoiceNumber;
 use App\Models\Client;
 use App\Models\Hour;
 use App\Models\Invoice;
+use App\Services\InvoiceDescriptionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -53,44 +54,9 @@ class InvoiceResource extends Resource
                                     ->whereYear('date', $date->year)
                                     ->get();
 
-                                if ($hours->isEmpty()) {
-                                    $set('amount', 0);
-                                    $set('description', "No billable time entries found for {$date->format('F Y')}.");
-                                    return;
-                                }
-
-                                $totalHours = $hours->sum('hours');
-                                $totalAmount = $hours->sum(fn ($entry) => $entry->hours * $entry->rate);
-
-                                // Group entries by description to consolidate similar work
-                                $groupedEntries = $hours->groupBy('description')->map(function ($entries) {
-                                    return [
-                                        'hours' => $entries->sum('hours'),
-                                        'rate' => $entries->first()->rate,
-                                        'amount' => $entries->sum(fn ($entry) => $entry->hours * $entry->rate),
-                                    ];
-                                });
-
-                                $description = "Professional Services for {$date->format('F Y')}\n\n";
-
-                                foreach ($groupedEntries as $desc => $data) {
-                                    $description .= sprintf(
-                                        "- %s (%.2f hours @ $%.2f/hr) = $%.2f\n",
-                                        $desc,
-                                        $data['hours'],
-                                        $data['rate'],
-                                        $data['amount']
-                                    );
-                                }
-
-                                $description .= sprintf(
-                                    "\nTotal Hours: %.2f\nTotal Amount: $%.2f",
-                                    $totalHours,
-                                    $totalAmount
-                                );
-
-                                $set('amount', $totalAmount);
-                                $set('description', $description);
+                                $result = InvoiceDescriptionService::generate($hours, $date);
+                                $set('amount', $result['amount']);
+                                $set('description', $result['description']);
                             }),
 
                         Forms\Components\TextInput::make('number')
@@ -144,7 +110,7 @@ class InvoiceResource extends Resource
                             ->numeric()
                             ->required()
                             ->prefix('$')
-                            ->maxValue(42949672.95),
+                            ->maxValue(PHP_INT_MAX),
 
                         Forms\Components\MarkdownEditor::make('description')
                             ->required()
@@ -152,9 +118,6 @@ class InvoiceResource extends Resource
                     ])
                     ->columns(2)
                     ->collapsible(),
-
-                Forms\Components\Hidden::make('invoice_from_time_entries')
-                    ->default(false),
             ]);
     }
 
@@ -215,7 +178,7 @@ class InvoiceResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\InvoiceResource\RelationManagers\HoursRelationManager::class,
         ];
     }
 

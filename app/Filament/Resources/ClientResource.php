@@ -101,7 +101,7 @@ class ClientResource extends Resource
                             ->label('Payment Terms')
                             ->helperText('Days until payment is due')
                             ->numeric()
-                            ->default(14)
+                            ->default(15)
                             ->required(),
 
                         Forms\Components\TextInput::make('tax_id')

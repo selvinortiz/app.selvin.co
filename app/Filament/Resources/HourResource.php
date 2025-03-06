@@ -59,7 +59,6 @@ class HourResource extends Resource
                         Forms\Components\TextInput::make('hours')
                             ->required()
                             ->numeric()
-                            ->mask('99.9')
                             ->step(0.5)
                             ->minValue(0.5)
                             ->maxValue(24)

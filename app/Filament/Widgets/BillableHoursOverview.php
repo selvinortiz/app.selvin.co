@@ -31,7 +31,9 @@ class BillableHoursOverview extends BaseWidget
         $unbilledEntries = Hour::query()
             ->where('user_id', $userId)
             ->where('is_billable', true)
-            ->whereNull('invoice_id');
+            ->whereNull('invoice_id')
+            ->whereYear('date', $currentMonth->year)
+            ->whereMonth('date', $currentMonth->month);
 
         $unbilledHours = $unbilledEntries->sum('hours');
         $unbilledAmount = $unbilledEntries->sum(DB::raw('hours * rate'));

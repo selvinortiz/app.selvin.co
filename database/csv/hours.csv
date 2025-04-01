@@ -1,0 +1,28 @@
+id,tenant_id,user_id,client_id,invoice_id,date,hours,rate,description,is_billable,created_at,updated_at
+1,1,1,2,,2025-01-09,1.00,150.00,Gables code review with Brennen (Part 1),true,2025-03-04 18:29:13,2025-03-04 18:29:13
+2,1,1,2,,2025-01-09,0.50,150.00,Gables code review with Brennen (Part 2),true,2025-03-04 18:29:13,2025-03-04 18:29:13
+3,1,1,2,,2025-01-10,0.50,150.00,Gables code review summary draft,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+4,1,1,2,,2025-01-07,1.00,150.00,Discovery call with Resi and Gables team,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+5,1,1,2,,2025-02-20,3.00,150.00,Dev meeting with Brennen/Tanner + Thursday Tea,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+6,1,1,2,,2025-02-20,5.00,150.00,"Resi v2 audit, ERD, and PR with application tests",true,2025-03-04 18:29:13,2025-03-04 18:29:13
+7,1,1,2,,2025-02-21,1.50,150.00,Resi v2 architecture meetings with Brennen,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+8,1,1,2,,2025-02-21,1.50,150.00,In-depth audit for Resi Elements,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+9,1,1,2,,2025-02-25,3.00,150.00,Code analysis of Resi V2 schema and current roles/permissions/teams architecture to decide on implementation details,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+10,1,1,2,,2025-02-26,4.00,150.00,"Work on multitenancy, roles, and permissions for v2 with multiple panels",true,2025-03-04 18:29:13,2025-03-04 18:29:13
+11,1,1,2,,2025-02-27,3.00,150.00,"Code review with Tanner, meeting with Brennen about the unified dashboard + Thursday Tea",true,2025-03-04 18:29:13,2025-03-04 18:29:13
+12,1,1,2,,2025-02-28,6.00,150.00,Unified dashboard refactor and neighborhood audits plugin initial work on on authorization and v1 API,true,2025-03-04 18:29:13,2025-03-04 18:29:13
+13,1,1,2,,2025-03-01,1.00,150.00,Audit of the v1 API on v2 to gauge progress and outline remaining tasks,true,2025-03-04 18:29:13,2025-03-05 03:55:49
+14,1,1,2,,2025-03-03,3.50,150.00,"Meetings with Tanner to review Neighborhood Maps, and with Brennen to discuss the sprint",true,2025-03-05 03:54:25,2025-03-06 06:31:56
+15,1,1,2,,2025-03-04,2.00,150.00,"Meeting about tags with Baylee, sprint meeting with Brennen, and product/marketing meeting",true,2025-03-05 03:58:49,2025-03-05 03:58:49
+16,1,1,2,,2025-03-05,2.00,150.00,"Dev sync to discuss the sprint, tags, neighborhoods, and collaboration with the design team",true,2025-03-06 06:30:21,2025-03-06 06:30:21
+17,1,1,2,,2025-03-05,3.00,150.00,Initial dev work on Connections,true,2025-03-06 06:31:03,2025-03-06 06:31:03
+18,1,1,2,,2025-03-06,1.00,150.00,Thursday team meeting,true,2025-03-10 03:55:57,2025-03-10 03:55:57
+19,1,1,2,,2025-03-07,1.00,150.00,Meeting with the Gables team,true,2025-03-10 03:56:37,2025-03-10 03:56:37
+20,1,1,2,,2025-03-07,2.50,150.00,Working on a new implementation of Integrations,true,2025-03-10 03:58:28,2025-03-10 03:58:42
+21,1,1,2,,2025-03-10,1.00,150.00,Meeting with Austin to understand the build workflow better,true,2025-03-17 14:06:33,2025-03-17 14:06:33
+22,1,1,2,,2025-03-13,1.00,150.00,Thursday team updates,true,2025-03-17 14:07:14,2025-03-17 14:07:14
+23,1,1,2,,2025-03-14,3.00,150.00,Mutual alignment meetings,true,2025-03-17 14:13:57,2025-03-17 14:13:57
+24,1,1,2,,2025-03-12,7.00,150.00,Work on initial prototype of Connections that will replace Integrations,true,2025-03-17 14:15:10,2025-03-17 14:15:10
+25,1,1,2,,2025-03-13,2.00,150.00,Team empowerment through meetings,true,2025-03-17 14:16:52,2025-03-17 14:16:52
+26,1,1,2,,2025-03-19,8.00,150.00,"Several meetings with design team (mosaic project), dev team (v2 alignment), and leadership (miro, etc) to better understand team dynamic and vision alignment",true,2025-03-23 17:58:33,2025-03-23 18:15:56
+27,1,1,2,,2025-03-21,8.00,150.00,Completed Connections prototype to share with the dev team,true,2025-03-23 17:59:20,2025-03-23 17:59:20

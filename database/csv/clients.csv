@@ -1,4 +1,4 @@
-id,user_id,business_name,address,business_phone,business_email,tax_id,website,default_rate,contact_name,contact_title,contact_email,contact_phone,send_invoices_to_contact,payment_terms_days,invoice_notes,internal_notes,code,created_at,updated_at
-1,1,"Mod Creative, Inc","POBOX 490392
-Minneapolis, MN 55449",(763) 300-9509,phil@modcreativeinc.com,,https://modcreativeinc.com,150.00,Phil Nelson,CEO,phil@modcreativeinc.com,(763) 300-9509,0,15,,,224MOD,2025-01-05 04:46:33,2025-03-02 20:43:56
-2,1,"MyCore Industries, LLC","Minneapolis, MN",,grady@getresi.com,,https://getresi.com,150.00,Grady Newman,CEO,accounting@getresi.com,,1,15,,,227RES,2025-01-10 06:34:37,2025-03-02 20:44:09
+id,tenant_id,user_id,business_name,address,business_phone,business_email,tax_id,website,default_rate,contact_name,contact_title,contact_email,contact_phone,send_invoices_to_contact,payment_terms_days,invoice_notes,internal_notes,code,created_at,updated_at
+1,1,1,"Mod Creative, Inc","POBOX 490392
+Minneapolis, MN 55449",(763) 300-9509,phil@modcreativeinc.com,,https://modcreativeinc.com,150.00,Phil Nelson,,phil@modcreativeinc.com,,true,14,,,224MOD,2025-03-04 18:29:13,2025-03-04 18:29:13
+2,1,1,"MyCore Industries, LLC","Minneapolis, MN",,grady@getresi.com,,https://getresi.com,150.00,Grady Newman,,accounting@getresi.com,,true,15,,,227RES,2025-03-04 18:29:13,2025-03-05 15:57:05

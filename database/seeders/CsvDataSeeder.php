@@ -29,7 +29,7 @@ class CsvDataSeeder extends Seeder
         $this->importUsers();
         $this->importClients();
         $this->importInvoices();
-        $this->importTimeEntries(); // Changed order since we need invoices first
+        $this->importHours(); // Changed order since we need invoices first
     }
 
     protected function importUsers(): void
@@ -83,9 +83,9 @@ class CsvDataSeeder extends Seeder
         fclose($handle);
     }
 
-    protected function importTimeEntries(): void
+    protected function importHours(): void
     {
-        $handle = fopen(database_path('csv/time_entries.csv'), 'r');
+        $handle = fopen(database_path('csv/hours.csv'), 'r');
         $headers = fgetcsv($handle);
 
         while (($data = fgetcsv($handle)) !== false) {

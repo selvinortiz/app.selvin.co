@@ -26,6 +26,8 @@ class InvoiceResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $now = now(config('app.user_timezone', 'UTC'));
+
         return $form
             ->schema([
                 Forms\Components\Section::make('Client & Invoice Details')
@@ -38,23 +40,22 @@ class InvoiceResource extends Resource
                             ->preload()
                             ->live()
                             ->columnSpanFull()
-                            ->afterStateUpdated(function (Get $get, Set $set) {
+                            ->afterStateUpdated(function (Get $get, Set $set) use ($now) {
                                 if (!$get('client_id')) return;
 
                                 $client = Client::find($get('client_id'));
-                                $date = now();
-                                $set('number', InvoiceNumber::generate($client, $date));
+                                $set('number', InvoiceNumber::generate($client, $now));
 
                                 // Calculate totals from uninvoiced time entries for the current month
                                 $hours = Hour::query()
                                     ->where('client_id', $get('client_id'))
                                     ->where('is_billable', true)
                                     ->whereNull('invoice_id')
-                                    ->whereMonth('date', $date->month)
-                                    ->whereYear('date', $date->year)
+                                    ->whereMonth('date', $now->month)
+                                    ->whereYear('date', $now->year)
                                     ->get();
 
-                                $result = InvoiceDescriptionService::generate($hours, $date);
+                                $result = InvoiceDescriptionService::generate($hours, $now);
                                 $set('amount', $result['amount']);
                                 $set('description', $result['description']);
                             }),
@@ -97,7 +98,7 @@ class InvoiceResource extends Resource
                         Forms\Components\DatePicker::make('due_date')
                             ->label('Due Date')
                             ->required()
-                            ->default(now()->addDays(14)),
+                            ->default(now()->addDays(15)),
                     ])
                     ->columns(2)
                     ->collapsible(),

@@ -14,15 +14,17 @@ class BillableHoursOverview extends BaseWidget
 
     protected function getStats(): array
     {
+        $now = now(config('app.user_timezone', 'UTC'));
+
         $userId = Auth::id();
-        $currentMonth = now()->startOfMonth();
+
 
         // Get current month's billable hours
         $currentMonthEntries = Hour::query()
             ->where('user_id', $userId)
             ->where('is_billable', true)
-            ->whereYear('date', $currentMonth->year)
-            ->whereMonth('date', $currentMonth->month);
+            ->whereYear('date', $now->year)
+            ->whereMonth('date', $now->month);
 
         $totalHours = $currentMonthEntries->sum('hours');
         $totalAmount = $currentMonthEntries->sum(DB::raw('hours * rate'));
@@ -32,8 +34,8 @@ class BillableHoursOverview extends BaseWidget
             ->where('user_id', $userId)
             ->where('is_billable', true)
             ->whereNull('invoice_id')
-            ->whereYear('date', $currentMonth->year)
-            ->whereMonth('date', $currentMonth->month);
+            ->whereYear('date', $now->year)
+            ->whereMonth('date', $now->month);
 
         $unbilledHours = $unbilledEntries->sum('hours');
         $unbilledAmount = $unbilledEntries->sum(DB::raw('hours * rate'));
@@ -42,13 +44,13 @@ class BillableHoursOverview extends BaseWidget
         $averageRate = Hour::query()
             ->where('user_id', $userId)
             ->where('is_billable', true)
-            ->whereYear('date', $currentMonth->year)
-            ->whereMonth('date', $currentMonth->month)
+            ->whereYear('date', $now->year)
+            ->whereMonth('date', $now->month)
             ->avg('rate') ?? 0;
 
         return [
             Stat::make('Current Month Hours', number_format($totalHours, 2))
-                ->description($currentMonth->format('F Y'))
+                ->description($now->format('F Y'))
                 ->descriptionIcon('heroicon-m-calendar')
                 ->chart([7, 4, 6, 8, 5, 2, 3])
                 ->color('success'),

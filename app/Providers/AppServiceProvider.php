@@ -23,8 +23,5 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::unguard();
-
-        DateTimePicker::configureUsing(fn(DateTimePicker $component) => $component->timezone(config('app.user_timezone')));
-        TextColumn::configureUsing(fn(TextColumn $column) => $column->timezone(config('app.user_timezone')));
     }
 }

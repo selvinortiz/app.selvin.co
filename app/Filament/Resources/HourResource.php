@@ -102,6 +102,8 @@ class HourResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $now = now(config('app.user_timezone', 'UTC'));
+
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('client.business_name')
@@ -164,8 +166,8 @@ class HourResource extends Resource
 
                 Tables\Filters\Filter::make('this_month')
                     ->label('This Month')
-                    ->query(fn (Builder $query): Builder => $query->whereMonth('date', now()->month)
-                        ->whereYear('date', now()->year))
+                    ->query(fn (Builder $query): Builder => $query->whereMonth('date', $now->month)
+                        ->whereYear('date', $now->year))
                     ->default(),
             ])
             ->actions([

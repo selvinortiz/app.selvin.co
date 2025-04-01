@@ -123,4 +123,5 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'user_timezone' => env('USER_TIMEZONE', 'America/Chicago'),
 ];

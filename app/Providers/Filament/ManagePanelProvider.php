@@ -31,7 +31,6 @@ class ManagePanelProvider extends PanelProvider
             ->id('manage')
             ->path('manage')
             ->login()
-            ->registration()
             ->colors([
                 'primary' => Color::Purple,
                 'gray' => Color::Slate,

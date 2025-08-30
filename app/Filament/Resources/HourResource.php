@@ -127,7 +127,14 @@ class HourResource extends Resource
                     ->label('Rate')
                     ->money('USD')
                     ->sortable()
-                    ->alignRight(),
+                    ->alignRight()
+                    ->toggleable(),
+
+
+                Tables\Columns\TextColumn::make('description')
+                    ->label('Description')
+                    ->limit(50)
+                    ->searchable(),
 
                 Tables\Columns\IconColumn::make('is_billable')
                     ->label('Billable')
@@ -137,16 +144,12 @@ class HourResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger'),
 
-                Tables\Columns\TextColumn::make('description')
-                    ->label('Description')
-                    ->limit(50)
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('invoice.number')
                     ->label('Invoice')
                     ->sortable()
                     ->placeholder('Not Invoiced')
-                    ->url(fn ($record) => $record->invoice_id ? route('invoice.view', $record->invoice) : null),
+                    ->url(fn ($record) => $record->invoice_id ? route('invoice.view', $record->invoice) : null)
+                    ->toggleable(),
             ])
             ->defaultSort('date', 'desc')
             ->filters([

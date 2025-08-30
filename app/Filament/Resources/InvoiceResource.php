@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Hour;
 use App\Models\Invoice;
 use App\Services\InvoiceDescriptionService;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -24,10 +25,35 @@ class InvoiceResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?int $navigationSort = 20;
 
+    protected static function updateInvoiceForMonth(Get $get, Set $set) {
+        if (!$get('client_id')) return;
+
+        $date = now(config('app.user_timezone', 'UTC'));
+
+        if ($get('date'))
+        {
+            $date = Carbon::parse($get('date'));
+        }
+
+        $client = Client::find($get('client_id'));
+
+        $set('number', InvoiceNumber::generate($client, $date));
+
+        $hours = Hour::query()
+            ->where('client_id', $get('client_id'))
+            ->where('is_billable', true)
+            ->whereNull('invoice_id')
+            ->whereMonth('date', $date->month)
+            ->whereYear('date', $date->year)
+            ->get();
+
+        $result = InvoiceDescriptionService::generate($hours, $date);
+        $set('amount', $result['amount']);
+        $set('description', $result['description']);
+    }
+
     public static function form(Form $form): Form
     {
-        $now = now(config('app.user_timezone', 'UTC'));
-
         return $form
             ->schema([
                 Forms\Components\Section::make('Client & Invoice Details')
@@ -40,26 +66,7 @@ class InvoiceResource extends Resource
                             ->preload()
                             ->live()
                             ->columnSpanFull()
-                            ->afterStateUpdated(function (Get $get, Set $set) use ($now) {
-                                if (!$get('client_id')) return;
-
-                                $client = Client::find($get('client_id'));
-                                $set('number', InvoiceNumber::generate($client, $now));
-
-                                // Calculate totals from uninvoiced time entries for the current month
-                                $hours = Hour::query()
-                                    ->where('client_id', $get('client_id'))
-                                    ->where('is_billable', true)
-                                    ->whereNull('invoice_id')
-                                    ->whereMonth('date', $now->month)
-                                    ->whereYear('date', $now->year)
-                                    ->get();
-
-                                $result = InvoiceDescriptionService::generate($hours, $now);
-                                $set('amount', $result['amount']);
-                                $set('description', $result['description']);
-                            }),
-
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
                         Forms\Components\TextInput::make('number')
                             ->label('Invoice Number')
                             ->required()
@@ -87,13 +94,7 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default(now())
                             ->live()
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                if ($get('client_id') && $get('date')) {
-                                    $client = Client::find($get('client_id'));
-                                    $date = \Carbon\Carbon::parse($get('date'));
-                                    $set('number', InvoiceNumber::generate($client, $date));
-                                }
-                            }),
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->label('Due Date')

@@ -11,6 +11,7 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Database\Eloquent\Builder;
 
 class HourResource extends Resource
@@ -121,7 +122,11 @@ class HourResource extends Resource
                     ->numeric(1)
                     ->sortable()
                     ->suffix(' hrs')
-                    ->alignRight(),
+                    ->alignRight()
+                    ->summarize(Sum::make()
+                        ->label('Total Hours')
+                        ->numeric(1)
+                        ->suffix(' hrs')),
 
                 Tables\Columns\TextColumn::make('rate')
                     ->label('Rate')
@@ -130,6 +135,12 @@ class HourResource extends Resource
                     ->alignRight()
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('amount')
+                    ->label('Amount')
+                    ->money('USD')
+                    ->sortable()
+                    ->alignRight()
+                    ->state(fn ($record) => $record->hours * $record->rate),
 
                 Tables\Columns\TextColumn::make('description')
                     ->label('Description')

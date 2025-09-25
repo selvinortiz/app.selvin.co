@@ -12,6 +12,19 @@ class Tenant extends Model
     use HasFactory;
 
     /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'location',
+        'timezone',
+    ];
+
+    /**
      * The attributes that should be cast to native types.
      *
      * @var array

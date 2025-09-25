@@ -76,9 +76,17 @@ class HoursRelationManager extends RelationManager
         $hours = $invoice->hours()->get();
         $result = InvoiceDescriptionService::generate($hours, $invoice->date);
 
+        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
+        $lines = array_filter(explode(PHP_EOL, $invoice->description ?? ''), function($line) {
+            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
+        });
+
         $invoice->update([
             'amount' => $result['amount'],
-            'description' => $result['summary'],
+            'description' => trim(implode(PHP_EOL, array_filter([
+                implode(PHP_EOL, $lines),
+                $result['summary'],
+            ]))),
         ]);
     }
 }

@@ -78,7 +78,7 @@ class HoursRelationManager extends RelationManager
 
         $invoice->update([
             'amount' => $result['amount'],
-            'description' => $result['description'],
+            'description' => $result['summary'],
         ]);
     }
 }

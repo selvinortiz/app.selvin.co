@@ -46,8 +46,11 @@ class InvoiceDescriptionService
             $totalAmount
         );
 
+        $summary = sprintf('Total Hours (%.2f)', $totalHours);
+
         return [
             'amount' => $totalAmount,
+            'summary' => $summary,
             'description' => $description,
         ];
     }

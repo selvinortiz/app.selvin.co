@@ -47,9 +47,18 @@ class InvoiceResource extends Resource
             ->whereYear('date', $date->year)
             ->get();
 
-        $result = InvoiceDescriptionService::generate($hours, $date);
-        $set('amount', $result['amount']);
-        $set('description', $result['description']);
+        $details = InvoiceDescriptionService::generate($hours, $date);
+
+        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
+        $lines = array_filter(explode(PHP_EOL, $get('description') ?? ''), function($line) {
+            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
+        });
+
+        $set('amount', $details['amount']);
+        $set('description', trim(implode(PHP_EOL, array_filter([
+            implode(PHP_EOL, $lines),
+            $details['summary'],
+        ]))));
     }
 
     public static function form(Form $form): Form

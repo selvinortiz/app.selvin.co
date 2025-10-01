@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Hour;
 use App\Models\Invoice;
 use App\Services\InvoiceDescriptionService;
+use App\Services\MonthContextService;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -28,7 +29,7 @@ class InvoiceResource extends Resource
     protected static function updateInvoiceForMonth(Get $get, Set $set) {
         if (!$get('client_id')) return;
 
-        $date = now(config('app.user_timezone', 'UTC'));
+        $date = MonthContextService::getSelectedMonth();
 
         if ($get('date'))
         {
@@ -101,14 +102,14 @@ class InvoiceResource extends Resource
                         Forms\Components\DatePicker::make('date')
                             ->label('Invoice Date')
                             ->required()
-                            ->default(now())
+                            ->default(MonthContextService::getSelectedMonth()->toDateString())
                             ->live()
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->label('Due Date')
                             ->required()
-                            ->default(now()->addDays(15)),
+                            ->default(MonthContextService::getSelectedMonth()->addDays(15)),
                     ])
                     ->columns(2)
                     ->collapsible(),

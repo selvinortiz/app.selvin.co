@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\InvoiceStatus;
 use App\Models\Invoice;
+use App\Services\MonthContextService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -13,10 +14,12 @@ class InvoiceStatusSummary extends BaseWidget
 {
     protected static ?string $pollingInterval = null;
 
+    protected $listeners = ['month-context-updated' => '$refresh'];
+
     protected function getStats(): array
     {
         $userId = Auth::id();
-        $currentMonth = now()->startOfMonth();
+        $selectedMonth = MonthContextService::getSelectedMonth();
 
         // Get draft invoices
         $draftInvoices = Invoice::query()
@@ -35,11 +38,11 @@ class InvoiceStatusSummary extends BaseWidget
         $overdueCount = $overdueInvoices->count();
         $overdueAmount = $overdueInvoices->sum('amount');
 
-        // Get current month's invoiced amount
+        // Get selected month's invoiced amount
         $currentMonthAmount = Invoice::query()
             ->where('user_id', $userId)
-            ->whereYear('date', $currentMonth->year)
-            ->whereMonth('date', $currentMonth->month)
+            ->whereYear('date', $selectedMonth->year)
+            ->whereMonth('date', $selectedMonth->month)
             ->sum('amount');
 
         return [
@@ -53,8 +56,8 @@ class InvoiceStatusSummary extends BaseWidget
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('danger'),
 
-            Stat::make('Current Month', '$' . number_format($currentMonthAmount, 2))
-                ->description($currentMonth->format('F Y'))
+            Stat::make('Selected Month', '$' . number_format($currentMonthAmount, 2))
+                ->description(MonthContextService::getFormattedMonth())
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->chart([7, 4, 6, 8, 5, 2, 3])
                 ->color('success'),

@@ -2,26 +2,27 @@
 
 namespace App\Filament\Widgets;
 
-use App\Filament\Resources\HourResource\Pages\ListHours;
+use App\Models\Hour;
 use App\Services\MonthContextService;
-use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 
-class HourStatsWidget extends BaseWidget
+class DashboardHourStatsWidget extends BaseWidget
 {
-    use InteractsWithPageTable;
-
     protected static ?string $pollingInterval = null;
 
-    protected function getTablePage(): string
-    {
-        return ListHours::class;
-    }
+    protected $listeners = ['month-context-updated' => '$refresh'];
 
     protected function getStats(): array
     {
-        $query = $this->getPageTableQuery();
+        $selectedMonth = MonthContextService::getSelectedMonth();
+        $userId = Auth::id();
+
+        $query = Hour::query()
+            ->where('user_id', $userId)
+            ->whereYear('date', $selectedMonth->year)
+            ->whereMonth('date', $selectedMonth->month);
 
         $totalHours = $query->sum('hours');
         $totalAmount = $query->get()->sum(fn ($record) => $record->hours * $record->rate);

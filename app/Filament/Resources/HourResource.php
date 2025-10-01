@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\HourResource\Pages;
 use App\Models\Hour;
+use App\Services\MonthContextService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -103,8 +104,6 @@ class HourResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $now = now(config('app.user_timezone', 'UTC'));
-
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('client.business_name')
@@ -178,10 +177,13 @@ class HourResource extends Resource
                     ->label('Show Billable')
                     ->query(fn (Builder $query): Builder => $query->where('is_billable', true)),
 
-                Tables\Filters\Filter::make('this_month')
-                    ->label('This Month')
-                    ->query(fn (Builder $query): Builder => $query->whereMonth('date', $now->month)
-                        ->whereYear('date', $now->year))
+                Tables\Filters\Filter::make('selected_month')
+                    ->label(fn () => 'Selected Month (' . MonthContextService::getFormattedMonth() . ')')
+                    ->query(function (Builder $query): Builder {
+                        $selectedMonth = MonthContextService::getSelectedMonth();
+                        return $query->whereMonth('date', $selectedMonth->month)
+                            ->whereYear('date', $selectedMonth->year);
+                    })
                     ->default(),
             ])
             ->actions([

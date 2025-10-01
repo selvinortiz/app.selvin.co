@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Hour;
+use App\Services\MonthContextService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -12,19 +13,19 @@ class BillableHoursOverview extends BaseWidget
 {
     protected static ?string $pollingInterval = null;
 
+    protected $listeners = ['month-context-updated' => '$refresh'];
+
     protected function getStats(): array
     {
-        $now = now(config('app.user_timezone', 'UTC'));
-
+        $selectedMonth = MonthContextService::getSelectedMonth();
         $userId = Auth::id();
 
-
-        // Get current month's billable hours
+        // Get selected month's billable hours
         $currentMonthEntries = Hour::query()
             ->where('user_id', $userId)
             ->where('is_billable', true)
-            ->whereYear('date', $now->year)
-            ->whereMonth('date', $now->month);
+            ->whereYear('date', $selectedMonth->year)
+            ->whereMonth('date', $selectedMonth->month);
 
         $totalHours = $currentMonthEntries->sum('hours');
         $totalAmount = $currentMonthEntries->sum(DB::raw('hours * rate'));
@@ -34,8 +35,8 @@ class BillableHoursOverview extends BaseWidget
             ->where('user_id', $userId)
             ->where('is_billable', true)
             ->whereNull('invoice_id')
-            ->whereYear('date', $now->year)
-            ->whereMonth('date', $now->month);
+            ->whereYear('date', $selectedMonth->year)
+            ->whereMonth('date', $selectedMonth->month);
 
         $unbilledHours = $unbilledEntries->sum('hours');
         $unbilledAmount = $unbilledEntries->sum(DB::raw('hours * rate'));
@@ -44,13 +45,13 @@ class BillableHoursOverview extends BaseWidget
         $averageRate = Hour::query()
             ->where('user_id', $userId)
             ->where('is_billable', true)
-            ->whereYear('date', $now->year)
-            ->whereMonth('date', $now->month)
+            ->whereYear('date', $selectedMonth->year)
+            ->whereMonth('date', $selectedMonth->month)
             ->avg('rate') ?? 0;
 
         return [
-            Stat::make('Current Month Hours', number_format($totalHours, 2))
-                ->description($now->format('F Y'))
+            Stat::make('Selected Month Hours', number_format($totalHours, 2))
+                ->description(MonthContextService::getFormattedMonth())
                 ->descriptionIcon('heroicon-m-calendar')
                 ->chart([7, 4, 6, 8, 5, 2, 3])
                 ->color('success'),

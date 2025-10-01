@@ -85,7 +85,7 @@ class HoursRelationManager extends RelationManager
             'amount' => $result['amount'],
             'description' => trim(implode(PHP_EOL, array_filter([
                 implode(PHP_EOL, $lines),
-                $result['summary'],
+                $result['description'],
             ]))),
         ]);
     }

@@ -58,7 +58,7 @@ class InvoiceResource extends Resource
         $set('amount', $details['amount']);
         $set('description', trim(implode(PHP_EOL, array_filter([
             implode(PHP_EOL, $lines),
-            $details['summary'],
+            $details['summary'] ?? '',
         ]))));
     }
 

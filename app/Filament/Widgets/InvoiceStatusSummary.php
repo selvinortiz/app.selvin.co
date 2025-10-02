@@ -39,7 +39,7 @@ class InvoiceStatusSummary extends BaseWidget
         $overdueAmount = $overdueInvoices->sum('amount');
 
         // Get selected month's invoiced amount
-        $currentMonthAmount = Invoice::query()
+        $selectedMonthAmount = Invoice::query()
             ->where('user_id', $userId)
             ->whereYear('date', $selectedMonth->year)
             ->whereMonth('date', $selectedMonth->month)
@@ -56,7 +56,7 @@ class InvoiceStatusSummary extends BaseWidget
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('danger'),
 
-            Stat::make('Selected Month', '$' . number_format($currentMonthAmount, 2))
+            Stat::make('Selected Month', '$' . number_format($selectedMonthAmount, 2))
                 ->description(MonthContextService::getFormattedMonth())
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->chart([7, 4, 6, 8, 5, 2, 3])

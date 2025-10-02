@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Hour;
 use App\Services\MonthContextService;
+use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -52,19 +53,18 @@ class BillableHoursOverview extends BaseWidget
         return [
             Stat::make('Selected Month Hours', number_format($totalHours, 2))
                 ->description(MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-calendar')
-                ->chart([7, 4, 6, 8, 5, 2, 3])
+                ->descriptionIcon('heroicon-m-calendar', IconPosition::Before)
                 ->color('success'),
 
             Stat::make('Unbilled Time', number_format($unbilledHours, 2) . ' hours')
                 ->description('$' . number_format($unbilledAmount, 2))
-                ->descriptionIcon('heroicon-m-banknotes')
+                ->descriptionIcon('heroicon-m-banknotes', IconPosition::Before)
                 ->color('warning'),
 
             Stat::make('Average Rate', '$' . number_format($averageRate, 2))
                 ->description('Per hour')
-                ->descriptionIcon('heroicon-m-currency-dollar')
-                ->color('info'),
+                ->descriptionIcon('heroicon-m-currency-dollar', IconPosition::Before)
+                ->color('success'),
         ];
     }
 }

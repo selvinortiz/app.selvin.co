@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\InvoiceStatus;
 use App\Models\Invoice;
 use App\Services\MonthContextService;
+use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -48,18 +49,16 @@ class InvoiceStatusSummary extends BaseWidget
         return [
             Stat::make('Draft Invoices', $draftCount)
                 ->description('$' . number_format($draftAmount, 2))
-                ->descriptionIcon('heroicon-m-document')
-                ->color('info'),
+                ->descriptionIcon('heroicon-m-document', IconPosition::Before),
 
             Stat::make('Overdue Invoices', $overdueCount)
                 ->description('$' . number_format($overdueAmount, 2))
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
+                ->descriptionIcon('heroicon-m-exclamation-triangle', IconPosition::Before)
                 ->color('danger'),
 
-            Stat::make('Selected Month', '$' . number_format($selectedMonthAmount, 2))
+            Stat::make('Total Invoiced', '$' . number_format($selectedMonthAmount, 2))
                 ->description(MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-banknotes')
-                ->chart([7, 4, 6, 8, 5, 2, 3])
+                ->descriptionIcon('heroicon-m-banknotes', IconPosition::Before)
                 ->color('success'),
         ];
     }

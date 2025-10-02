@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\HourResource\Pages\ListHours;
 use App\Services\MonthContextService;
+use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -30,17 +31,16 @@ class HourStatsWidget extends BaseWidget
         return [
             Stat::make('Total Hours', number_format($totalHours, 1) . ' hrs')
                 ->description('Hours logged for ' . MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-clock')
-                ->color('primary'),
+                ->descriptionIcon('heroicon-m-clock', IconPosition::Before),
 
             Stat::make('Total Amount', '$' . number_format($totalAmount, 2))
                 ->description('Billing amount for ' . MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-currency-dollar')
+                ->descriptionIcon('heroicon-m-currency-dollar', IconPosition::Before)
                 ->color('success'),
 
-            Stat::make('Entries', $recordCount)
-                ->description('Time entries for ' . MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-document-text')
+            Stat::make('Time Entries', $recordCount)
+                ->description('Time logged in ' . MonthContextService::getFormattedMonth())
+                ->descriptionIcon('heroicon-m-document-text', IconPosition::Before)
                 ->color('info'),
         ];
     }

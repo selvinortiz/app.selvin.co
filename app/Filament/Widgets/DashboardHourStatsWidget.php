@@ -26,7 +26,7 @@ class DashboardHourStatsWidget extends BaseWidget
             ->whereMonth('date', $selectedMonth->month);
 
         $totalHours = $query->sum('hours');
-        $totalAmount = $query->get()->sum(fn ($record) => $record->hours * $record->rate);
+        $totalAmount = $query->where('is_billable', true)->get()->sum(fn ($record) => $record->hours * $record->rate);
         $recordCount = $query->count();
 
         return [

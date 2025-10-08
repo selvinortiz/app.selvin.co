@@ -143,8 +143,9 @@ class HourResource extends Resource
 
                 Tables\Columns\TextColumn::make('description')
                     ->label('Description')
-                    ->limit(50)
-                    ->searchable(),
+                    ->wrap()
+                    ->searchable()
+                    ->size('xs'),
 
                 Tables\Columns\IconColumn::make('is_billable')
                     ->label('Billable')

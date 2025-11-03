@@ -18,6 +18,7 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceResource extends Resource
 {
@@ -50,16 +51,10 @@ class InvoiceResource extends Resource
 
         $details = InvoiceDescriptionService::generate($hours, $date);
 
-        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
-        $lines = array_filter(explode(PHP_EOL, $get('description') ?? ''), function($line) {
-            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
-        });
+        Log::info('Invoice details: ', compact('details'));
 
         $set('amount', $details['amount']);
-        $set('description', trim(implode(PHP_EOL, array_filter([
-            implode(PHP_EOL, $lines),
-            $details['description'] ?? '',
-        ]))));
+        $set('description', $details['summary']);
     }
 
     public static function form(Form $form): Form
@@ -75,6 +70,7 @@ class InvoiceResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live()
+                            ->debounce(1000)
                             ->columnSpanFull()
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
                         Forms\Components\TextInput::make('number')
@@ -104,6 +100,7 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default(MonthContextService::getSelectedMonth()->toDateString())
                             ->live()
+                            ->debounce(1000)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
 
                         Forms\Components\DatePicker::make('due_date')

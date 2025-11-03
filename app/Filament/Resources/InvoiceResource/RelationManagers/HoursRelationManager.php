@@ -28,8 +28,10 @@ class HoursRelationManager extends RelationManager
                     ->money()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('description')
-                    ->limit(50)
+                    ->wrap()
+                    ->size('xs')
                     ->searchable(),
+
                 Tables\Columns\TextColumn::make('amount')
                     ->money()
                     ->state(fn ($record) => $record->hours * $record->rate)
@@ -74,19 +76,11 @@ class HoursRelationManager extends RelationManager
     protected function updateInvoiceTotals($invoice): void
     {
         $hours = $invoice->hours()->get();
-        $result = InvoiceDescriptionService::generate($hours, $invoice->date);
-
-        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
-        $lines = array_filter(explode(PHP_EOL, $invoice->description ?? ''), function($line) {
-            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
-        });
+        $details = InvoiceDescriptionService::generate($hours, $invoice->date);
 
         $invoice->update([
-            'amount' => $result['amount'],
-            'description' => trim(implode(PHP_EOL, array_filter([
-                implode(PHP_EOL, $lines),
-                $result['description'],
-            ]))),
+            'amount' => $details['amount'],
+            'description' => $details['summary'],
         ]);
     }
 }

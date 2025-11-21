@@ -97,6 +97,23 @@ class HourResource extends Resource
                             ->placeholder('Describe the work performed in detail...')
                             ->helperText('Be specific about tasks completed and deliverables')
                             ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('tag')
+                            ->label('Tag')
+                            ->placeholder('e.g., Meeting, Gables')
+                            ->maxLength(100)
+                            ->helperText('Optional tag to categorize this time entry')
+                            ->datalist(
+                                Hour::query()
+                                    ->whereNotNull('tag')
+                                    ->distinct()
+                                    ->pluck('tag')
+                                    ->filter()
+                                    ->sort()
+                                    ->values()
+                                    ->toArray()
+                            )
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(),
             ]);
@@ -147,6 +164,15 @@ class HourResource extends Resource
                     ->searchable()
                     ->size('xs'),
 
+                Tables\Columns\TextColumn::make('tag')
+                    ->label('Tag')
+                    ->badge()
+                    ->color('info')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 Tables\Columns\IconColumn::make('is_billable')
                     ->label('Billable')
                     ->boolean()
@@ -186,6 +212,20 @@ class HourResource extends Resource
                             ->whereYear('date', $selectedMonth->year);
                     })
                     ->default(),
+
+                Tables\Filters\SelectFilter::make('tag')
+                    ->label('Filter by Tag')
+                    ->options(function () {
+                        return Hour::query()
+                            ->whereNotNull('tag')
+                            ->distinct()
+                            ->pluck('tag', 'tag')
+                            ->filter()
+                            ->sort()
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->preload(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()

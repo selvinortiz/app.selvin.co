@@ -24,4 +24,9 @@ class EditInvoice extends EditRecord
         $this->getRecord()->refresh();
         $this->fillForm();
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

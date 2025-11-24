@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Hour;
 use App\Services\MonthContextService;
+use Filament\Facades\Filament;
 use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -18,11 +19,13 @@ class BillableHoursOverview extends BaseWidget
 
     protected function getStats(): array
     {
+        $tenant = Filament::getTenant();
         $selectedMonth = MonthContextService::getSelectedMonth();
         $userId = Auth::id();
 
         // Get selected month's billable hours
         $currentMonthEntries = Hour::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->where('is_billable', true)
             ->whereYear('date', $selectedMonth->year)
@@ -33,6 +36,7 @@ class BillableHoursOverview extends BaseWidget
 
         // Get unbilled entries
         $unbilledEntries = Hour::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->where('is_billable', true)
             ->whereNull('invoice_id')
@@ -44,6 +48,7 @@ class BillableHoursOverview extends BaseWidget
 
         // Calculate average hourly rate
         $averageRate = Hour::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->where('is_billable', true)
             ->whereYear('date', $selectedMonth->year)

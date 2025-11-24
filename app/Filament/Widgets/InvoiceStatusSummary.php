@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\InvoiceStatus;
 use App\Models\Invoice;
 use App\Services\MonthContextService;
+use Filament\Facades\Filament;
 use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -19,11 +20,13 @@ class InvoiceStatusSummary extends BaseWidget
 
     protected function getStats(): array
     {
+        $tenant = Filament::getTenant();
         $userId = Auth::id();
         $selectedMonth = MonthContextService::getSelectedMonth();
 
         // Get draft invoices
         $draftInvoices = Invoice::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->where('status', InvoiceStatus::Draft);
 
@@ -32,6 +35,7 @@ class InvoiceStatusSummary extends BaseWidget
 
         // Get overdue invoices
         $overdueInvoices = Invoice::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->where('status', InvoiceStatus::Sent)
             ->where('due_date', '<', now());
@@ -41,6 +45,7 @@ class InvoiceStatusSummary extends BaseWidget
 
         // Get selected month's invoiced amount
         $selectedMonthAmount = Invoice::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->whereYear('date', $selectedMonth->year)
             ->whereMonth('date', $selectedMonth->month)

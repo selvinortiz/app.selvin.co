@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Hour;
 use App\Services\MonthContextService;
+use Filament\Facades\Filament;
 use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -17,10 +18,12 @@ class DashboardHourStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
+        $tenant = Filament::getTenant();
         $selectedMonth = MonthContextService::getSelectedMonth();
         $userId = Auth::id();
 
         $query = Hour::query()
+            ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->whereYear('date', $selectedMonth->year)
             ->whereMonth('date', $selectedMonth->month);

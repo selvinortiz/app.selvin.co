@@ -35,6 +35,16 @@ class Tenant extends Model
         return $this->hasMany(Hour::class);
     }
 
+    public function contractors(): HasMany
+    {
+        return $this->hasMany(Contractor::class);
+    }
+
+    public function contractorInvoices(): HasMany
+    {
+        return $this->hasMany(ContractorInvoice::class);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class);

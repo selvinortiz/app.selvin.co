@@ -110,6 +110,7 @@ class Dashboard extends BaseDashboard implements HasForms, HasActions
             \App\Filament\Widgets\DashboardHourStatsWidget::class,
             \App\Filament\Widgets\BillableHoursOverview::class,
             \App\Filament\Widgets\InvoiceStatusSummary::class,
+            \App\Filament\Widgets\ContractorInvoiceSummary::class,
         ];
     }
 }

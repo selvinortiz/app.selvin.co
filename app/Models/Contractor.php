@@ -21,7 +21,6 @@ class Contractor extends Model
         'id' => 'integer',
         'tenant_id' => 'integer',
         'user_id' => 'integer',
-        'date_of_birth' => 'date',
         'bank_routing' => 'encrypted',
         'bank_account' => 'encrypted',
         'payment_terms_days' => 'integer',
@@ -35,5 +34,10 @@ class Contractor extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(ContractorInvoice::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ContractorDocument::class);
     }
 }

@@ -54,22 +54,6 @@ class ContractorResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
-                Forms\Components\Section::make('Tax Information')
-                    ->schema([
-                        Forms\Components\TextInput::make('tax_id')
-                            ->label('Tax ID / FTIN')
-                            ->helperText('Foreign Tax ID (FTIN), EIN, or SSN')
-                            ->maxLength(255),
-
-                        Forms\Components\DatePicker::make('date_of_birth')
-                            ->label('Date of Birth')
-                            ->helperText('Required for W-8BEN forms')
-                            ->displayFormat('M d, Y')
-                            ->maxDate(now()),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
-
                 Forms\Components\Section::make('Payment Information')
                     ->schema([
                         Forms\Components\Select::make('payment_method')
@@ -85,6 +69,20 @@ class ContractorResource extends Resource
                             ->numeric()
                             ->default(15)
                             ->required(),
+
+                        Forms\Components\TextInput::make('bank_name')
+                            ->label('Bank Name')
+                            ->maxLength(255),
+
+                        Forms\Components\Select::make('account_type')
+                            ->label('Account Type')
+                            ->options([
+                                'checking' => 'Checking',
+                                'savings' => 'Savings',
+                                'other' => 'Other',
+                            ])
+                            ->placeholder('Select account type')
+                            ->native(false),
 
                         Forms\Components\TextInput::make('bank_routing')
                             ->label('Bank Routing Number')
@@ -136,10 +134,6 @@ class ContractorResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('tax_id')
-                    ->label('Tax ID')
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('payment_method')
                     ->badge()
                     ->sortable(),
@@ -174,7 +168,7 @@ class ContractorResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\DocumentsRelationManager::class,
         ];
     }
 

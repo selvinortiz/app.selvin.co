@@ -22,9 +22,9 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
             $table->string('country')->nullable();
-            $table->string('tax_id')->nullable()->comment('Foreign Tax ID (FTIN) or EIN/SSN');
-            $table->date('date_of_birth')->nullable();
             $table->enum('payment_method', ['ACH', 'Wire'])->nullable();
+            $table->string('bank_name')->nullable();
+            $table->enum('account_type', ['checking', 'savings', 'other'])->nullable();
             $table->text('bank_routing')->nullable()->comment('Encrypted');
             $table->text('bank_account')->nullable()->comment('Encrypted');
             $table->integer('payment_terms_days')->default(15);

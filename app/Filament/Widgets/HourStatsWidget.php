@@ -38,10 +38,10 @@ class HourStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-currency-dollar', IconPosition::Before)
                 ->color('success'),
 
-            Stat::make('Time Entries', $recordCount)
-                ->description('Time logged in ' . MonthContextService::getFormattedMonth())
-                ->descriptionIcon('heroicon-m-document-text', IconPosition::Before)
-                ->color('info'),
+            // Stat::make('Time Entries', $recordCount)
+            //     ->description('Time logged in ' . MonthContextService::getFormattedMonth())
+            //     ->descriptionIcon('heroicon-m-document-text', IconPosition::Before)
+            //     ->color('info'),
         ];
     }
 }

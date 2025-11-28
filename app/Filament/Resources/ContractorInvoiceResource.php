@@ -21,6 +21,7 @@ class ContractorInvoiceResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-arrow-down';
     protected static ?int $navigationSort = 31;
     protected static ?string $navigationGroup = 'Contractors';
+    protected static ?string $navigationLabel = 'Invoices';
 
     protected static function updateDueDate(Get $get, Set $set): void
     {

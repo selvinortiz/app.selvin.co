@@ -16,6 +16,7 @@ class ClientResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
     protected static ?int $navigationSort = 10;
+    protected static ?string $navigationGroup = 'Clients';
 
     public static function form(Form $form): Form
     {

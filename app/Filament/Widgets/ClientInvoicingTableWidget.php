@@ -100,6 +100,6 @@ class ClientInvoicingTableWidget extends BaseWidget
                     }),
             ])
             ->defaultSort('total_invoiced', 'desc')
-            ->heading('Invoiced by Client - ' . YearContextService::getFormattedYear());
+            ->heading('Invoiced by Client in ' . YearContextService::getFormattedYear());
     }
 }

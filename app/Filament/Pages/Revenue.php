@@ -14,13 +14,13 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
-class Reports extends Page implements HasForms, HasActions
+class Revenue extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
-    protected static ?int $navigationSort = 31;
-    protected static string $view = 'filament.pages.reports';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+    protected static ?int $navigationSort = 20;
+    protected static string $view = 'filament.pages.revenue';
 
     public ?array $data = [];
 
@@ -47,7 +47,7 @@ class Reports extends Page implements HasForms, HasActions
 
                             Notification::make()
                                 ->title('Year Context Updated')
-                                ->body('All reports now show data for ' . YearContextService::getFormattedYear())
+                                ->body('All revenue data now shows for ' . YearContextService::getFormattedYear())
                                 ->success()
                                 ->send();
                         }
@@ -65,7 +65,7 @@ class Reports extends Page implements HasForms, HasActions
                 ->color(fn () => YearContextService::isCustomYearSelected() ? 'warning' : 'gray')
                 ->form([
                     Section::make('Year Context')
-                        ->description('Select the year for viewing YTD reports.')
+                        ->description('Select the year for viewing YTD revenue.')
                         ->schema([
                             Select::make('selected_year')
                                 ->label('Year')
@@ -81,7 +81,7 @@ class Reports extends Page implements HasForms, HasActions
 
                     Notification::make()
                         ->title('Year Context Updated')
-                        ->body('All reports now show data for ' . YearContextService::getFormattedYear())
+                        ->body('All revenue data now shows for ' . YearContextService::getFormattedYear())
                         ->success()
                         ->send();
                 })
@@ -97,7 +97,7 @@ class Reports extends Page implements HasForms, HasActions
 
                     Notification::make()
                         ->title('Reset to Current Year')
-                        ->body('All reports now show data for ' . YearContextService::getFormattedYear())
+                        ->body('All revenue data now shows for ' . YearContextService::getFormattedYear())
                         ->success()
                         ->send();
                 })

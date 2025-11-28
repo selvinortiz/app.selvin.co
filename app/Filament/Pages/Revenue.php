@@ -18,7 +18,7 @@ class Revenue extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
 
-    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?int $navigationSort = 20;
     protected static string $view = 'filament.pages.revenue';
 

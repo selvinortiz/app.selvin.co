@@ -41,21 +41,20 @@ class YTDRevenueStatsWidget extends BaseWidget
         // Outstanding Receivables (Total Invoiced - Total Paid)
         $outstanding = $totalInvoiced - $totalPaid;
 
-        $formattedYear = YearContextService::getFormattedYear();
+        // $formattedYear = YearContextService::getFormattedYear();
 
         return [
             Stat::make('Total Invoiced', '$' . number_format($totalInvoiced, 2))
-                ->description('Total invoiced for ' . $formattedYear)
-                ->descriptionIcon('heroicon-m-document-text', IconPosition::Before)
-                ->color('success'),
+                ->description('Total invoiced to clients')
+                ->descriptionIcon('heroicon-m-document-text', IconPosition::Before),
 
             Stat::make('Total Paid', '$' . number_format($totalPaid, 2))
-                ->description('Paid invoices for ' . $formattedYear)
+                ->description('Total paid by clients')
                 ->descriptionIcon('heroicon-m-check-circle', IconPosition::Before)
                 ->color('success'),
 
             Stat::make('Outstanding', '$' . number_format($outstanding, 2))
-                ->description('Unpaid receivables for ' . $formattedYear)
+                ->description('Total outstanding from clients')
                 ->descriptionIcon('heroicon-m-clock', IconPosition::Before)
                 ->color($outstanding > 0 ? 'warning' : 'success'),
         ];

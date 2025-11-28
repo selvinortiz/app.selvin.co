@@ -47,20 +47,20 @@ class SimplifiedDashboardWidget extends BaseWidget
             ->whereMonth('paid_at', $selectedMonth->month)
             ->sum('amount');
 
-        $formattedMonth = MonthContextService::getFormattedMonth();
+        // $formattedMonth = MonthContextService::getFormattedMonth();
 
         return [
             Stat::make('Hours', number_format($totalHours, 2))
-                ->description('Hours logged for ' . $formattedMonth)
+                ->description('Totall hours logged')
                 ->descriptionIcon('heroicon-m-clock', IconPosition::Before),
 
             Stat::make('Receivable', '$' . number_format($billableAmount, 2))
-                ->description('Billing amount to clients for ' . $formattedMonth)
+                ->description('Total invoiced to clients')
                 ->descriptionIcon('heroicon-m-arrow-down-right', IconPosition::Before)
                 ->color('success'),
 
             Stat::make('Payable', '$' . number_format($selectedMonthPaid, 2))
-                ->description('Invoiced by contractors for ' . $formattedMonth)
+                ->description('Total to pay contractors')
                 ->descriptionIcon('heroicon-m-arrow-up-right', IconPosition::Before)
                 ->color('danger'),
         ];

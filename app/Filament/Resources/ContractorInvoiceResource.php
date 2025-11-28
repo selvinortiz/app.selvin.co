@@ -146,9 +146,9 @@ class ContractorInvoiceResource extends Resource
                     ->money()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('payment_status')
                     ->label('Status')
-                    ->formatStateUsing(fn (ContractorInvoice $record): string => $record->isPaid() ? 'Paid' : ($record->isOverdue() ? 'Overdue' : 'Unpaid'))
+                    ->state(fn (ContractorInvoice $record): string => $record->isPaid() ? 'Paid' : ($record->isOverdue() ? 'Overdue' : 'Unpaid'))
                     ->badge()
                     ->color(fn (ContractorInvoice $record): string => match (true) {
                         $record->isPaid() => 'success',

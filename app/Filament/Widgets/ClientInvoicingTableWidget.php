@@ -67,10 +67,26 @@ class ClientInvoicingTableWidget extends BaseWidget
                     ->groupBy('client_id')
             )
             ->columns([
-                Tables\Columns\TextColumn::make('client.business_name')
+                Tables\Columns\TextColumn::make('client.display_name')
                     ->label('Client')
-                    ->searchable()
-                    ->sortable()
+                    ->searchable(query: function ($query, $search) {
+                        return $query->whereHas('client', function ($q) use ($search) {
+                            $q->where('business_name', 'like', "%{$search}%")
+                              ->orWhere('short_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function (Builder $query, string $direction) {
+                        $paidStatus = InvoiceStatus::Paid->value;
+                        return $query->join('clients', 'invoices.client_id', '=', 'clients.id')
+                            ->select([
+                                'invoices.client_id',
+                                DB::raw('COUNT(*) as invoice_count'),
+                                DB::raw('SUM(invoices.amount) as total_invoiced'),
+                                DB::raw("SUM(CASE WHEN invoices.status = '{$paidStatus}' THEN invoices.amount ELSE 0 END) as total_paid"),
+                            ])
+                            ->groupBy('invoices.client_id')
+                            ->orderByRaw("COALESCE(clients.short_name, clients.business_name) {$direction}");
+                    })
                     ->default('Unknown Client'),
 
                 Tables\Columns\TextColumn::make('invoice_count')

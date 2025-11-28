@@ -13,6 +13,33 @@ class Client extends Model
     use HasFactory, HasUser;
 
     /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'tenant_id',
+        'user_id',
+        'business_name',
+        'short_name',
+        'address',
+        'business_phone',
+        'business_email',
+        'tax_id',
+        'website',
+        'default_rate',
+        'contact_name',
+        'contact_title',
+        'contact_email',
+        'contact_phone',
+        'send_invoices_to_contact',
+        'payment_terms_days',
+        'invoice_notes',
+        'internal_notes',
+        'code',
+    ];
+
+    /**
      * The attributes that should be cast to native types.
      *
      * @var array
@@ -24,6 +51,16 @@ class Client extends Model
         'default_rate' => 'decimal:2',
         'send_invoices_to_contact' => 'boolean',
     ];
+
+    /**
+     * Get the display name (short name if available, otherwise business name).
+     *
+     * @return string
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->short_name ?? $this->business_name;
+    }
 
     public function tenant(): BelongsTo
     {

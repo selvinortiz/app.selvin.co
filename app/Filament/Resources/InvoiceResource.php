@@ -72,6 +72,7 @@ class InvoiceResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('client_id')
                             ->relationship('client', 'business_name')
+                            ->getOptionLabelUsing(fn ($value): ?string => Client::find($value)?->display_name)
                             ->required()
                             ->searchable()
                             ->preload()
@@ -143,10 +144,19 @@ class InvoiceResource extends Resource
                     ->sortable()
                     ->url(fn (Invoice $record): string => route('invoice.view', $record)),
 
-                Tables\Columns\TextColumn::make('client.business_name')
+                Tables\Columns\TextColumn::make('client.display_name')
                     ->label('Client')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: function ($query, $search) {
+                        return $query->whereHas('client', function ($q) use ($search) {
+                            $q->where('business_name', 'like', "%{$search}%")
+                              ->orWhere('short_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->join('clients', 'invoices.client_id', '=', 'clients.id')
+                            ->orderByRaw("COALESCE(clients.short_name, clients.business_name) {$direction}")
+                            ->select('invoices.*');
+                    }),
 
                 Tables\Columns\TextColumn::make('date')
                     ->date()

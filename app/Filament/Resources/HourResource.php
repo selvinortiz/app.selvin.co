@@ -32,6 +32,7 @@ class HourResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('client_id')
                             ->relationship('client', 'business_name')
+                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\Client::find($value)?->display_name)
                             ->required()
                             ->searchable()
                             ->preload()
@@ -124,10 +125,19 @@ class HourResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('client.business_name')
+                Tables\Columns\TextColumn::make('client.display_name')
                     ->label('Client')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: function ($query, $search) {
+                        return $query->whereHas('client', function ($q) use ($search) {
+                            $q->where('business_name', 'like', "%{$search}%")
+                              ->orWhere('short_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->join('clients', 'hours.client_id', '=', 'clients.id')
+                            ->orderByRaw("COALESCE(clients.short_name, clients.business_name) {$direction}")
+                            ->select('hours.*');
+                    }),
 
                 Tables\Columns\TextColumn::make('date')
                     ->label('Entry Date')
@@ -193,6 +203,7 @@ class HourResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('client')
                     ->relationship('client', 'business_name')
+                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\Client::find($value)?->display_name)
                     ->label('Filter by Client')
                     ->searchable()
                     ->preload(),

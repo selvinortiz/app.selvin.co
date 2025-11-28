@@ -30,6 +30,12 @@ class ClientResource extends Resource
                             ->maxLength(255)
                             ->columnSpan(2),
 
+                        Forms\Components\TextInput::make('short_name')
+                            ->label('Short Name')
+                            ->maxLength(255)
+                            ->helperText('Optional alias for use in tables (e.g., "Resi" for "MyCore Industries, LLC")')
+                            ->columnSpan(2),
+
                         Forms\Components\TextInput::make('code')
                             ->required()
                             ->maxLength(255)

@@ -24,20 +24,21 @@ class InvoiceStatusSummary extends BaseWidget
         $userId = Auth::id();
         $selectedMonth = MonthContextService::getSelectedMonth();
 
-        // Get draft invoices
+        // Get draft invoices (not sent)
         $draftInvoices = Invoice::query()
             ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
-            ->where('status', InvoiceStatus::Draft);
+            ->whereNull('sent_at');
 
         $draftCount = $draftInvoices->count();
         $draftAmount = $draftInvoices->sum('amount');
 
-        // Get overdue invoices
+        // Get overdue invoices (sent but not paid and past due date)
         $overdueInvoices = Invoice::query()
             ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
-            ->where('status', InvoiceStatus::Sent)
+            ->whereNotNull('sent_at')
+            ->whereNull('paid_at')
             ->where('due_date', '<', now());
 
         $overdueCount = $overdueInvoices->count();

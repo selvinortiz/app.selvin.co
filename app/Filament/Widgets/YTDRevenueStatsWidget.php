@@ -40,7 +40,7 @@ class YTDRevenueStatsWidget extends BaseWidget
             ->where('tenant_id', $tenant->id)
             ->where('user_id', $userId)
             ->whereYear('date', $selectedYear)
-            ->where('status', InvoiceStatus::Paid)
+            ->whereNotNull('paid_at')
             ->sum('amount');
 
         // Outstanding Receivables (Total Invoiced - Total Paid)

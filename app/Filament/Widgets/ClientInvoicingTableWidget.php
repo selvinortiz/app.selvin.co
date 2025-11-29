@@ -49,8 +49,6 @@ class ClientInvoicingTableWidget extends BaseWidget
         $selectedYear = YearContextService::getSelectedYear();
         $userId = Auth::id();
 
-        $paidStatus = InvoiceStatus::Paid->value;
-
         return $table
             ->query(
                 Invoice::query()
@@ -61,7 +59,7 @@ class ClientInvoicingTableWidget extends BaseWidget
                         'client_id',
                         DB::raw('COUNT(*) as invoice_count'),
                         DB::raw('SUM(amount) as total_invoiced'),
-                        DB::raw("SUM(CASE WHEN status = '{$paidStatus}' THEN amount ELSE 0 END) as total_paid"),
+                        DB::raw("SUM(CASE WHEN paid_at IS NOT NULL THEN amount ELSE 0 END) as total_paid"),
                     ])
                     ->with('client')
                     ->groupBy('client_id')
@@ -76,13 +74,12 @@ class ClientInvoicingTableWidget extends BaseWidget
                         });
                     })
                     ->sortable(query: function (Builder $query, string $direction) {
-                        $paidStatus = InvoiceStatus::Paid->value;
                         return $query->join('clients', 'invoices.client_id', '=', 'clients.id')
                             ->select([
                                 'invoices.client_id',
                                 DB::raw('COUNT(*) as invoice_count'),
                                 DB::raw('SUM(invoices.amount) as total_invoiced'),
-                                DB::raw("SUM(CASE WHEN invoices.status = '{$paidStatus}' THEN invoices.amount ELSE 0 END) as total_paid"),
+                                DB::raw("SUM(CASE WHEN invoices.paid_at IS NOT NULL THEN invoices.amount ELSE 0 END) as total_paid"),
                             ])
                             ->groupBy('invoices.client_id')
                             ->orderByRaw("COALESCE(clients.short_name, clients.business_name) {$direction}");
@@ -111,8 +108,8 @@ class ClientInvoicingTableWidget extends BaseWidget
                     ->label('Outstanding')
                     ->money('USD')
                     ->state(fn ($record) => ($record->total_invoiced ?? 0) - ($record->total_paid ?? 0))
-                    ->sortable(query: function (Builder $query, string $direction) use ($paidStatus): Builder {
-                        return $query->orderByRaw("(SUM(amount) - SUM(CASE WHEN status = '{$paidStatus}' THEN amount ELSE 0 END)) {$direction}");
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw("(SUM(amount) - SUM(CASE WHEN paid_at IS NOT NULL THEN amount ELSE 0 END)) {$direction}");
                     }),
             ])
             ->defaultSort('total_invoiced', 'desc')

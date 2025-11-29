@@ -89,13 +89,8 @@ class InvoiceResource extends Resource
                         Forms\Components\TextInput::make('reference')
                             ->required()
                             ->maxLength(255),
-
-                        Forms\Components\Select::make('status')
-                            ->options(collect(InvoiceStatus::cases())->mapWithKeys(fn ($status) => [$status->value => $status->label()]))
-                            ->required()
-                            ->default(InvoiceStatus::Draft->value),
                     ])
-                    ->columns(3)
+                    ->columns(2)
                     ->collapsible(),
 
                 Forms\Components\Section::make('Dates')
@@ -112,6 +107,24 @@ class InvoiceResource extends Resource
                             ->label('Due Date')
                             ->required()
                             ->default(MonthContextService::getSelectedMonth()->addDays(15)),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
+                Forms\Components\Section::make('Payment Tracking')
+                    ->description('Track when this invoice was sent and paid.')
+                    ->schema([
+                        Forms\Components\DateTimePicker::make('sent_at')
+                            ->label('Sent At')
+                            ->helperText('Leave empty if not yet sent')
+                            ->displayFormat('M d, Y g:i A')
+                            ->timezone('America/Chicago'),
+
+                        Forms\Components\DateTimePicker::make('paid_at')
+                            ->label('Paid At')
+                            ->helperText('Leave empty if not yet paid')
+                            ->displayFormat('M d, Y g:i A')
+                            ->timezone('America/Chicago'),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -171,25 +184,87 @@ class InvoiceResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')
-                    ->formatStateUsing(fn (InvoiceStatus $state): string => $state->label())
+                    ->label('Status')
+                    ->state(fn (Invoice $record): string => $record->getStatusLabel())
                     ->badge()
-                    ->color(fn (Invoice $record): string => match($record->status) {
-                        InvoiceStatus::Draft => 'gray',
-                        InvoiceStatus::Sent => 'warning',
-                        InvoiceStatus::Paid => 'success',
-                    }),
+                    ->color(fn (Invoice $record): string => $record->getStatusColor()),
+
+                Tables\Columns\TextColumn::make('sent_at')
+                    ->label('Sent At')
+                    ->dateTime('M d, Y g:i A')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('paid_at')
+                    ->label('Paid At')
+                    ->dateTime('M d, Y g:i A')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('date', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->options(collect(InvoiceStatus::cases())->mapWithKeys(fn ($status) => [$status->value => $status->label()])),
+                Tables\Filters\Filter::make('status')
+                    ->form([
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'sent' => 'Sent',
+                                'paid' => 'Paid',
+                            ])
+                            ->placeholder('All statuses'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when(
+                            $data['status'] === 'draft',
+                            fn ($query) => $query->whereNull('sent_at'),
+                        )->when(
+                            $data['status'] === 'sent',
+                            fn ($query) => $query->whereNotNull('sent_at')->whereNull('paid_at'),
+                        )->when(
+                            $data['status'] === 'paid',
+                            fn ($query) => $query->whereNotNull('paid_at'),
+                        );
+                    }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('print')
-                    ->icon('heroicon-o-printer')
-                    ->url(fn (Invoice $record): string => route('invoice.view', ['invoice' => $record, 'print' => true]))
-                    ->openUrlInNewTab(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('mark_sent')
+                        ->label('Mark as Sent')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->action(function (Invoice $record) {
+                            $record->update(['sent_at' => now()]);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Invoice marked as sent')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn (Invoice $record) => $record->isDraft()),
+                    Tables\Actions\Action::make('mark_paid')
+                        ->label('Mark as Paid')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Invoice $record) {
+                            $record->update(['paid_at' => now()]);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Invoice marked as paid')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn (Invoice $record) => !$record->isPaid()),
+                    Tables\Actions\Action::make('print')
+                        ->label('Print')
+                        ->icon('heroicon-o-printer')
+                        ->url(fn (Invoice $record): string => route('invoice.view', ['invoice' => $record, 'print' => true]))
+                        ->openUrlInNewTab(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->label('actions')
+                    ->color('gray')
+                    ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

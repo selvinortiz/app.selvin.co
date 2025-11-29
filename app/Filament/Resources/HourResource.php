@@ -48,7 +48,7 @@ class HourResource extends Resource
                             ->columnSpanFull(),
 
                         Forms\Components\DatePicker::make('date')
-                            ->label('Entry Date')
+                            ->label('Date')
                             ->required()
                             ->default(now())
                             ->maxDate(now())
@@ -140,16 +140,15 @@ class HourResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('date')
-                    ->label('Entry Date')
+                    ->label('Date')
                     ->date('M j, Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('hours')
-                    ->label('Time')
+                    ->label('Hours')
                     ->numeric(1)
                     ->sortable()
                     ->suffix(' hrs')
-                    ->alignRight()
                     ->summarize(Sum::make()
                         ->label('Total Hours')
                         ->numeric(1)
@@ -159,14 +158,12 @@ class HourResource extends Resource
                     ->label('Rate')
                     ->money('USD')
                     ->sortable()
-                    ->alignRight()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Amount')
                     ->money('USD')
                     ->sortable()
-                    ->alignRight()
                     ->state(fn ($record) => $record->hours * $record->rate),
 
                 Tables\Columns\TextColumn::make('description')
@@ -182,7 +179,7 @@ class HourResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('—')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('is_billable')
                     ->label('Billable')
@@ -190,14 +187,15 @@ class HourResource extends Resource
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
-                    ->falseColor('danger'),
+                    ->falseColor('danger')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('invoice.number')
                     ->label('Invoice')
                     ->sortable()
                     ->placeholder('Not Invoiced')
                     ->url(fn ($record) => $record->invoice_id ? route('invoice.view', $record->invoice) : null)
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('date', 'desc')
             ->filters([
@@ -254,7 +252,6 @@ class HourResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->iconButton(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

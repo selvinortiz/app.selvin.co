@@ -112,12 +112,38 @@ class CsvDataSeeder extends Seeder
         $handle = fopen(database_path('csv/invoices.csv'), 'r');
         $headers = fgetcsv($handle);
 
+        // Get Mod Creative client ID by code
+        $modCreativeClientId = Client::where('code', '224MOD')->value('id');
+
         while (($data = fgetcsv($handle)) !== false) {
             $row = array_combine($headers, $data);
 
+            $status = $row['status'] ?? 'draft';
+            $date = \Carbon\Carbon::parse($row['date']);
+            $dueDate = \Carbon\Carbon::parse($row['due_date']);
+            $clientId = $this->clientMap[$row['client_id']] ?? null;
+
+            // Set sent_at and paid_at based on status
+            $sentAt = null;
+            $paidAt = null;
+
+            if ($status === 'sent' || $status === 'paid') {
+                $sentAt = $date->copy()->setTime(13, 0, 0);
+            }
+
+            if ($status === 'paid') {
+                // For Mod Creative: paid_at = date + 7 days
+                if ($clientId === $modCreativeClientId) {
+                    $paidAt = $date->copy()->addDays(7)->setTime(13, 0, 0);
+                } else {
+                    // For all other clients: paid_at = due_date
+                    $paidAt = $dueDate->copy()->setTime(13, 0, 0);
+                }
+            }
+
             $invoice = Invoice::create([
                 'tenant_id' => $this->tenant->id,
-                'client_id' => $this->clientMap[$row['client_id']] ?? null,
+                'client_id' => $clientId,
                 'user_id' => $this->userMap[$row['user_id']] ?? null,
                 'number' => $row['number'],
                 'date' => $row['date'],
@@ -125,7 +151,8 @@ class CsvDataSeeder extends Seeder
                 'reference' => $row['reference'] ?? null,
                 'description' => $row['description'] ?? null,
                 'amount' => $row['amount'],
-                'status' => InvoiceStatus::from($row['status'] ?? 'draft'),
+                'sent_at' => $sentAt,
+                'paid_at' => $paidAt,
             ]);
 
             $this->invoiceMap[$row['id']] = $invoice->id;

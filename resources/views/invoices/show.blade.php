@@ -82,11 +82,11 @@
                             <div class="text-left">
                                 <span @class([
                                     'px-2 py-1 rounded-full text-xs font-medium',
-                                    'bg-gray-100 text-gray-800' => $invoice->status === \App\Enums\InvoiceStatus::Draft,
-                                    'bg-yellow-100 text-yellow-800' => $invoice->status === \App\Enums\InvoiceStatus::Sent,
-                                    'bg-green-100 text-green-800' => $invoice->status === \App\Enums\InvoiceStatus::Paid,
+                                    'bg-gray-100 text-gray-800' => $invoice->isDraft(),
+                                    'bg-yellow-100 text-yellow-800' => $invoice->isSent(),
+                                    'bg-green-100 text-green-800' => $invoice->isPaid(),
                                 ])>
-                                    {{ $invoice->status->label() }}
+                                    {{ $invoice->getStatusLabel() }}
                                 </span>
                             </div>
                         </div>

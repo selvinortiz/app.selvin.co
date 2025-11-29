@@ -201,21 +201,6 @@ class HourResource extends Resource
             ])
             ->defaultSort('date', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('client')
-                    ->relationship('client', 'business_name')
-                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\Client::find($value)?->display_name)
-                    ->label('Filter by Client')
-                    ->searchable()
-                    ->preload(),
-
-                Tables\Filters\Filter::make('uninvoiced')
-                    ->label('Show Uninvoiced')
-                    ->query(fn (Builder $query): Builder => $query->whereNull('invoice_id')),
-
-                Tables\Filters\Filter::make('billable')
-                    ->label('Show Billable')
-                    ->query(fn (Builder $query): Builder => $query->where('is_billable', true)),
-
                 Tables\Filters\Filter::make('selected_month')
                     ->label(fn () => 'Selected Month (' . MonthContextService::getFormattedMonth() . ')')
                     ->query(function (Builder $query): Builder {
@@ -224,6 +209,34 @@ class HourResource extends Resource
                             ->whereYear('date', $selectedMonth->year);
                     })
                     ->default(),
+
+                Tables\Filters\SelectFilter::make('client_id')
+                    ->label('Filter by Client')
+                    ->options(function () {
+                        return \App\Models\Client::query()
+                            ->whereHas('hours')
+                            ->get()
+                            ->mapWithKeys(function ($client) {
+                                return [$client->id => $client->display_name];
+                            })
+                            ->sort()
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        return \App\Models\Client::query()
+                            ->whereHas('hours')
+                            ->where(function ($query) use ($search) {
+                                $query->where('business_name', 'like', "%{$search}%")
+                                      ->orWhere('short_name', 'like', "%{$search}%");
+                            })
+                            ->get()
+                            ->mapWithKeys(function ($client) {
+                                return [$client->id => $client->display_name];
+                            })
+                            ->toArray();
+                    })
+                    ->preload(),
 
                 Tables\Filters\SelectFilter::make('tag')
                     ->label('Filter by Tag')

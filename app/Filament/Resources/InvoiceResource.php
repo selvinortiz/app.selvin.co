@@ -176,6 +176,7 @@ class InvoiceResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('due_date')
+                    ->label('Due')
                     ->date()
                     ->sortable(),
 
@@ -261,10 +262,8 @@ class InvoiceResource extends Resource
                         ->url(fn (Invoice $record): string => route('invoice.view', ['invoice' => $record, 'print' => true]))
                         ->openUrlInNewTab(),
                 ])
-                    ->icon('heroicon-m-ellipsis-vertical')
-                    ->label('actions')
-                    ->color('gray')
-                    ->button(),
+                    ->icon('heroicon-s-ellipsis-horizontal')
+                    ->label('actions'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

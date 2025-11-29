@@ -143,6 +143,12 @@ class ClientResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('short_name')
+                    ->label('AKA')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
                     ->sortable(),
@@ -154,12 +160,14 @@ class ClientResource extends Resource
 
                 Tables\Columns\TextColumn::make('contact_email')
                     ->label('Email')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('default_rate')
                     ->label('Rate')
                     ->money()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('payment_terms_days')
                     ->label('Terms')

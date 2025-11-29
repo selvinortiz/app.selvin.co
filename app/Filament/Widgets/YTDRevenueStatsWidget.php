@@ -17,6 +17,11 @@ class YTDRevenueStatsWidget extends BaseWidget
 
     protected $listeners = ['year-context-updated' => '$refresh'];
 
+    protected function getColumns(): int
+    {
+        return 2;
+    }
+
     protected function getStats(): array
     {
         $tenant = Filament::getTenant();
@@ -39,7 +44,7 @@ class YTDRevenueStatsWidget extends BaseWidget
             ->sum('amount');
 
         // Outstanding Receivables (Total Invoiced - Total Paid)
-        $outstanding = $totalInvoiced - $totalPaid;
+        // $outstanding = $totalInvoiced - $totalPaid;
 
         // $formattedYear = YearContextService::getFormattedYear();
 
@@ -53,10 +58,10 @@ class YTDRevenueStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-check-circle', IconPosition::Before)
                 ->color('success'),
 
-            Stat::make('Outstanding', '$' . number_format($outstanding, 2))
-                ->description('Total outstanding from clients')
-                ->descriptionIcon('heroicon-m-clock', IconPosition::Before)
-                ->color($outstanding > 0 ? 'warning' : 'success'),
+            // Stat::make('Outstanding', '$' . number_format($outstanding, 2))
+            //     ->description('Total outstanding from clients')
+            //     ->descriptionIcon('heroicon-m-clock', IconPosition::Before)
+            //     ->color($outstanding > 0 ? 'warning' : 'success'),
         ];
     }
 }

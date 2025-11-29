@@ -15,6 +15,11 @@ class HourStatsWidget extends BaseWidget
 
     protected static ?string $pollingInterval = null;
 
+    protected function getColumns(): int
+    {
+        return 2;
+    }
+
     protected function getTablePage(): string
     {
         return ListHours::class;

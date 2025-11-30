@@ -5,7 +5,8 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\TenantRegistration;
 use App\Filament\Pages\TenantProfile;
 use App\Models\Tenant;
-use App\Filament\Billing\Provider\ExampleBillingProvider;
+use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -14,11 +15,11 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentView;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+use App\Http\Middleware\SetTenantFilamentColors;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
@@ -33,7 +34,9 @@ class ManagePanelProvider extends PanelProvider
             ->default()
             ->id('manage')
             ->path('manage')
+            ->simplePageMaxContentWidth(MaxWidth::FourExtraLarge)
             ->login()
+            ->brandLogo(fn () => view('filament.tenant-header-logo'))
             ->colors([
                 'primary' => Color::Purple,
                 'gray' => Color::Slate,
@@ -41,8 +44,9 @@ class ManagePanelProvider extends PanelProvider
             ->tenant(Tenant::class)
             ->tenantProfile(TenantProfile::class)
             ->tenantRegistration(TenantRegistration::class)
-            ->tenantBillingProvider(new ExampleBillingProvider())
-            ->requiresTenantSubscription()
+            ->tenantMiddleware([
+                SetTenantFilamentColors::class,
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

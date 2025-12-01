@@ -34,7 +34,6 @@ class ManagePanelProvider extends PanelProvider
             ->default()
             ->id('manage')
             ->path('manage')
-            ->simplePageMaxContentWidth(MaxWidth::FourExtraLarge)
             ->login()
             ->brandLogo(fn () => view('filament.tenant-header-logo'))
             ->colors([

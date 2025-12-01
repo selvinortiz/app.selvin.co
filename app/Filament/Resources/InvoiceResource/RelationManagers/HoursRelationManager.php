@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\InvoiceResource\RelationManagers;
 
-use App\Services\InvoiceDescriptionService;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -52,7 +51,6 @@ class HoursRelationManager extends RelationManager
                     ->after(function ($record, $livewire) {
                         $invoice = $livewire->getOwnerRecord();
                         $record->update(['invoice_id' => $invoice->id]);
-                        $this->updateInvoiceTotals($invoice->fresh());
                         $livewire->dispatch('refreshInvoice');
                     }),
             ])
@@ -65,28 +63,8 @@ class HoursRelationManager extends RelationManager
                     ->action(function (Hour $record, $livewire) {
                         $invoice = $livewire->getOwnerRecord();
                         $record->update(['invoice_id' => null]);
-                        $this->updateInvoiceTotals($invoice->fresh());
                         $livewire->dispatch('refreshInvoice');
                     }),
             ]);
-    }
-
-    protected function updateInvoiceTotals($invoice): void
-    {
-        $hours = $invoice->hours()->get();
-        $result = InvoiceDescriptionService::generate($hours, $invoice->date);
-
-        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
-        $lines = array_filter(explode(PHP_EOL, $invoice->description ?? ''), function($line) {
-            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
-        });
-
-        $invoice->update([
-            'amount' => $result['amount'],
-            'description' => trim(implode(PHP_EOL, array_filter([
-                implode(PHP_EOL, $lines),
-                $result['description'],
-            ]))),
-        ]);
     }
 }

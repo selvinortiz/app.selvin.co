@@ -27,40 +27,32 @@ class InvoiceResource extends Resource
     protected static ?int $navigationSort = 20;
     protected static ?string $navigationGroup = 'Clients';
 
-    protected static function updateInvoiceForMonth(Get $get, Set $set) {
+    protected static function updateInvoiceNumber(Get $get, Set $set): void
+    {
         if (!$get('client_id')) return;
 
         $date = MonthContextService::getSelectedMonth();
 
-        if ($get('date'))
-        {
+        if ($get('date')) {
             $date = Carbon::parse($get('date'));
         }
 
         $client = Client::find($get('client_id'));
 
-        $set('number', InvoiceNumber::generate($client, $date));
+        if ($client) {
+            $set('number', InvoiceNumber::generate($client, $date));
+            $set('reference', static::generateReference($date));
+        }
+    }
 
-        $hours = Hour::query()
-            ->where('client_id', $get('client_id'))
-            ->where('is_billable', true)
-            ->whereNull('invoice_id')
-            ->whereMonth('date', $date->month)
-            ->whereYear('date', $date->year)
-            ->get();
+    protected static function generateReference(Carbon $date): string
+    {
+        // Format: TL + 3-letter month (uppercase) + 4-digit year
+        // Example: TLNOV2025 for November 2025
+        $monthAbbr = strtoupper($date->format('M')); // Gets 3-letter month abbreviation
+        $year = $date->format('Y');
 
-        $details = InvoiceDescriptionService::generate($hours, $date);
-
-        // Remove lines that match the summary pattern (e.g., "Total Hours (X.X)")
-        $lines = array_filter(explode(PHP_EOL, $get('description') ?? ''), function($line) {
-            return !preg_match('/^Total Hours \(\d+\.?\d*\)$/', trim($line));
-        });
-
-        $set('amount', $details['amount']);
-        $set('description', trim(implode(PHP_EOL, array_filter([
-            implode(PHP_EOL, $lines),
-            $details['description'] ?? '',
-        ]))));
+        return "TL{$monthAbbr}{$year}";
     }
 
     public static function form(Form $form): Form
@@ -78,7 +70,7 @@ class InvoiceResource extends Resource
                             ->preload()
                             ->live()
                             ->columnSpanFull()
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceNumber($get, $set)),
                         Forms\Components\TextInput::make('number')
                             ->label('Invoice Number')
                             ->required()
@@ -101,7 +93,7 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default(MonthContextService::getSelectedMonth()->toDateString())
                             ->live()
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceForMonth($get, $set)),
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceNumber($get, $set)),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->label('Due Date')
@@ -138,6 +130,9 @@ class InvoiceResource extends Resource
                             ->required()
                             ->prefix('$')
                             ->maxValue(PHP_INT_MAX),
+
+                        Forms\Components\View::make('filament.forms.components.generate-description-button')
+                            ->columnSpanFull(),
 
                         Forms\Components\MarkdownEditor::make('description')
                             ->required()

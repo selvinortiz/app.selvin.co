@@ -11,7 +11,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Log;
 
 class CreateInvoice extends CreateRecord
 {
@@ -31,15 +31,14 @@ class CreateInvoice extends CreateRecord
             ->update(['invoice_id' => $this->record->id]);
     }
 
-    #[On('generateDescription')]
     public function generateDescription(): void
     {
-        \Log::debug('CreateInvoice.generateDescription invoked', [
+        Log::debug('CreateInvoice.generateDescription invoked', [
             'record_id' => $this->record?->id,
         ]);
 
         // Get current form data without validation
-        $data = $this->data ?? [];
+        $data = $this->form->getState();
         $clientId = $data['client_id'] ?? null;
         $date = $data['date'] ?? null;
 
@@ -63,7 +62,7 @@ class CreateInvoice extends CreateRecord
             ->whereYear('date', $date->year)
             ->get();
 
-        \Log::debug('CreateInvoice.generateDescription hours loaded', [
+        Log::debug('CreateInvoice.generateDescription hours loaded', [
             'count' => $hours->count(),
         ]);
 
@@ -79,11 +78,11 @@ class CreateInvoice extends CreateRecord
         $details = InvoiceDescriptionService::generate($hours, $date);
 
         // Update form data directly without triggering validation
-        $this->data['description'] = $details['description'];
-        $this->data['amount'] = $details['amount'];
-
-        // Update the form state
-        $this->form->fill($this->data);
+        $this->form->fill([
+            ...$this->form->getState(),
+            'description' => $details['description'],
+            'amount' => $details['amount'],
+        ]);
 
         Notification::make()
             ->title('Description Generated')

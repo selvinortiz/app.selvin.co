@@ -49,22 +49,12 @@ class InvoiceDescriptionService
             "\nTotal Hours: " . number_format($totalHours, 2) .
             "\nTotal Amount: $" . number_format($totalAmount, 2);
 
-        Log::debug('InvoiceDescriptionService deterministic description built', [
-            'total_hours' => $totalHours,
-            'total_amount' => $totalAmount,
-            'line_items_length' => strlen($lineItems),
-        ]);
-
         $aiDescription = static::generateAiDescription(
             trim($lineItems),
             $totalHours,
             $totalAmount,
             $date
         );
-
-        Log::debug('InvoiceDescriptionService AI description result', [
-            'used_ai' => $aiDescription !== null,
-        ]);
 
         $finalDescription = $aiDescription ?: $deterministicDescription;
 
@@ -115,12 +105,6 @@ class InvoiceDescriptionService
         $maxAttempts = 2;
         $lastError = null;
 
-        Log::debug('InvoiceDescriptionService AI request starting', [
-            'total_hours' => $totalHours,
-            'total_amount' => $totalAmount,
-            'model' => 'gpt-5-mini',
-        ]);
-
         while ($attempts < $maxAttempts) {
             try {
                 $response = OpenAI::responses()->create([
@@ -131,25 +115,9 @@ class InvoiceDescriptionService
                 Log::info('Response', $response->toArray());
                 $text = $response->outputText;
 
-                Log::debug('InvoiceDescriptionService AI response parsed', [
-                    'attempt' => $attempts + 1,
-                    'text_preview' => Str::limit($text, 120),
-                    'status' => $response->status ?? null,
-                    'response_type' => is_object($response) ? get_class($response) : gettype($response),
-                    'raw' => method_exists($response, 'toArray') ? $response->toArray() : null,
-                ]);
-
                 if ($text !== '') {
-                    Log::debug('InvoiceDescriptionService AI succeeded', [
-                        'attempt' => $attempts + 1,
-                        'output_length' => strlen($text),
-                    ]);
                     return $text;
                 }
-
-                Log::debug('InvoiceDescriptionService AI returned empty text', [
-                    'attempt' => $attempts + 1,
-                ]);
             } catch (\Throwable $e) {
                 $lastError = $e;
                 Log::warning('AI invoice description generation failed', [

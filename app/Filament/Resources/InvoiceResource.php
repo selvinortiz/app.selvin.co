@@ -170,15 +170,20 @@ class InvoiceResource extends Resource
                             ->prefix('$')
                             ->maxValue(PHP_INT_MAX),
 
-                        Forms\Components\View::make('filament.forms.components.generate-description-button')
-                            ->columnSpanFull(),
-
                         Forms\Components\MarkdownEditor::make('description')
                             ->required()
                             ->columnSpanFull(),
                     ])
                     ->columns(2)
-                    ->collapsible(),
+                    ->collapsible()
+                    ->headerActions([
+                        Forms\Components\Actions\Action::make('generateFromHours')
+                            ->label('Generate from Hours')
+                            ->icon('heroicon-o-sparkles')
+                            ->color('danger')
+                            ->action('generateDescription')
+                            ->requiresConfirmation(false),
+                    ]),
             ]);
     }
 

@@ -7,6 +7,7 @@ use App\Services\InvoiceDescriptionService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
 class EditInvoice extends EditRecord
@@ -27,17 +28,16 @@ class EditInvoice extends EditRecord
         $this->fillForm();
     }
 
-    #[On('generateDescription')]
     public function generateDescription(): void
     {
-        \Log::debug('EditInvoice.generateDescription invoked', [
+        Log::debug('EditInvoice.generateDescription invoked', [
             'invoice_id' => $this->record?->id,
         ]);
 
         $invoice = $this->getRecord();
         $hours = $invoice->hours()->get();
 
-        \Log::debug('EditInvoice.generateDescription hours loaded', [
+        Log::debug('EditInvoice.generateDescription hours loaded', [
             'count' => $hours->count(),
         ]);
 
@@ -53,11 +53,11 @@ class EditInvoice extends EditRecord
         $details = InvoiceDescriptionService::generate($hours, $invoice->date);
 
         // Update form data directly without triggering validation
-        $this->data['description'] = $details['description'];
-        $this->data['amount'] = $details['amount'];
-
-        // Update the form state
-        $this->form->fill($this->data);
+        $this->form->fill([
+            ...$this->form->getState(),
+            'description' => $details['description'],
+            'amount' => $details['amount'],
+        ]);
 
         Notification::make()
             ->title('Description Generated')

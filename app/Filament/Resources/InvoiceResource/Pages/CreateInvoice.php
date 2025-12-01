@@ -38,7 +38,7 @@ class CreateInvoice extends CreateRecord
         ]);
 
         // Get current form data without validation
-        $data = $this->form->getState();
+        $data = $this->data ?? [];
         $clientId = $data['client_id'] ?? null;
         $date = $data['date'] ?? null;
 
@@ -78,11 +78,11 @@ class CreateInvoice extends CreateRecord
         $details = InvoiceDescriptionService::generate($hours, $date);
 
         // Update form data directly without triggering validation
-        $this->form->fill([
-            ...$this->form->getState(),
-            'description' => $details['description'],
-            'amount' => $details['amount'],
-        ]);
+        $this->data['description'] = $details['description'];
+        $this->data['amount'] = $details['amount'];
+
+        // Update the form state
+        $this->form->fill($this->data);
 
         Notification::make()
             ->title('Description Generated')

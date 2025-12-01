@@ -45,6 +45,40 @@ class InvoiceResource extends Resource
         }
     }
 
+    protected static function updateDueDate(Get $get, Set $set): void
+    {
+        $clientId = $get('client_id');
+        $invoiceDate = $get('date');
+
+        // Both client and date must be set
+        if (empty($clientId) || empty($invoiceDate)) {
+            return;
+        }
+
+        $client = Client::find($clientId);
+        if (!$client) {
+            return;
+        }
+
+        // Parse the invoice date - handle both string and Carbon instances
+        try {
+            if ($invoiceDate instanceof Carbon) {
+                $date = $invoiceDate->copy();
+            } else {
+                $date = Carbon::parse($invoiceDate);
+            }
+        } catch (\Exception $e) {
+            // If date parsing fails, don't update due date
+            return;
+        }
+
+        // Use client's payment terms if set (including 0), otherwise default to 15 days
+        $paymentTermsDays = $client->payment_terms_days !== null ? $client->payment_terms_days : 15;
+        $dueDate = $date->copy()->addDays($paymentTermsDays)->format('Y-m-d');
+
+        $set('due_date', $dueDate);
+    }
+
     protected static function generateReference(Carbon $date): string
     {
         // Format: TL + 3-letter month (uppercase) + 4-digit year
@@ -70,7 +104,10 @@ class InvoiceResource extends Resource
                             ->preload()
                             ->live()
                             ->columnSpanFull()
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceNumber($get, $set)),
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                static::updateInvoiceNumber($get, $set);
+                                static::updateDueDate($get, $set);
+                            }),
                         Forms\Components\TextInput::make('number')
                             ->label('Invoice Number')
                             ->required()
@@ -93,12 +130,14 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default(MonthContextService::getSelectedMonth()->toDateString())
                             ->live()
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::updateInvoiceNumber($get, $set)),
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                static::updateInvoiceNumber($get, $set);
+                                static::updateDueDate($get, $set);
+                            }),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->label('Due Date')
-                            ->required()
-                            ->default(MonthContextService::getSelectedMonth()->addDays(15)),
+                            ->required(),
                     ])
                     ->columns(2)
                     ->collapsible(),

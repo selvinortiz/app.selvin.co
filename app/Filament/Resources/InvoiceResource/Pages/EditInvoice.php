@@ -27,10 +27,19 @@ class EditInvoice extends EditRecord
         $this->fillForm();
     }
 
+    #[On('generateDescription')]
     public function generateDescription(): void
     {
+        \Log::debug('EditInvoice.generateDescription invoked', [
+            'invoice_id' => $this->record?->id,
+        ]);
+
         $invoice = $this->getRecord();
         $hours = $invoice->hours()->get();
+
+        \Log::debug('EditInvoice.generateDescription hours loaded', [
+            'count' => $hours->count(),
+        ]);
 
         if ($hours->isEmpty()) {
             Notification::make()

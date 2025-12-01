@@ -11,6 +11,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Livewire\Attributes\On;
 
 class CreateInvoice extends CreateRecord
 {
@@ -30,8 +31,13 @@ class CreateInvoice extends CreateRecord
             ->update(['invoice_id' => $this->record->id]);
     }
 
+    #[On('generateDescription')]
     public function generateDescription(): void
     {
+        \Log::debug('CreateInvoice.generateDescription invoked', [
+            'record_id' => $this->record?->id,
+        ]);
+
         // Get current form data without validation
         $data = $this->data ?? [];
         $clientId = $data['client_id'] ?? null;
@@ -56,6 +62,10 @@ class CreateInvoice extends CreateRecord
             ->whereMonth('date', $date->month)
             ->whereYear('date', $date->year)
             ->get();
+
+        \Log::debug('CreateInvoice.generateDescription hours loaded', [
+            'count' => $hours->count(),
+        ]);
 
         if ($hours->isEmpty()) {
             Notification::make()

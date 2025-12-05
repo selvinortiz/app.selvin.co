@@ -16,6 +16,10 @@ class InvoiceViewController extends Controller
             abort(403, 'You do not have access to this invoice.');
         }
 
+        $invoice->load(['hours' => function ($query) {
+            $query->orderBy('date', 'asc');
+        }]);
+
         return view('invoices.show', [
             'invoice' => $invoice,
             'print' => request()->boolean('print', false),

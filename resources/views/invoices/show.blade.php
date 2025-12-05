@@ -17,6 +17,53 @@
             .no-print {
                 display: none !important;
             }
+
+            .page-break {
+                page-break-before: always;
+                break-before: page;
+                padding-top: 2rem;
+            }
+
+
+            table {
+                page-break-inside: auto;
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            thead tr {
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+
+            /* Add top margin for all pages to ensure spacing when table breaks */
+            @page {
+                margin-top: 4rem;
+                margin-bottom: 2rem;
+            }
+
+            /* Add extra top padding to table headers to ensure spacing on new pages */
+            .hours-table-container thead th {
+                padding-top: 1rem;
+            }
+
+            /* Add extra top padding to first tbody row cells to help with spacing on page breaks */
+            .hours-table-container tbody tr:first-child td {
+                padding-top: 1rem;
+            }
         }
     </style>
 
@@ -152,5 +199,75 @@
             </div>
         </div>
     </div>
+
+    {{-- Hours Breakdown Page --}}
+    @if($invoice->hours->isNotEmpty())
+        <div class="max-w-4xl mx-auto bg-white page-break hours-page {{ $print ? '' : 'mt-8 mb-8 shadow-sm border border-gray-200 rounded-lg' }}">
+            <div class="p-8">
+                {{-- Header --}}
+                <div class="flex justify-between mb-8">
+                    <div>
+                        <h1 class="text-4xl font-bold text-purple-800">{{ config('company.name') }}</h1>
+                        <h2 class="text-2xl mt-1">{{ config('company.contact.name') }}</h2>
+                    </div>
+                    <div class="text-right">
+                        <h1 class="text-4xl font-bold">HOURS</h1>
+                        <div class="mt-4">
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                <div class="text-right font-bold">Invoice Number:</div>
+                                <div class="text-left">{{ $invoice->number }}</div>
+                                <div class="text-right font-bold">Invoice Date:</div>
+                                <div class="text-left">{{ $invoice->date->format('m/d/Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Hours Table --}}
+                <div class="mt-8 hours-table-container">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-300">
+                                <th class="pb-2 text-left font-bold">Date</th>
+                                <th class="pb-2 text-right font-bold">Hours</th>
+                                <th class="pb-2 text-left font-bold pl-4">Description</th>
+                                <th class="pb-2 text-right font-bold pl-4">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $totalHours = 0;
+                                $totalAmount = 0;
+                                $previousDate = null;
+                            @endphp
+                            @foreach($invoice->hours as $hour)
+                                @php
+                                    $amount = $hour->hours * $hour->rate;
+                                    $totalHours += $hour->hours;
+                                    $totalAmount += $amount;
+                                    $currentDate = $hour->date->format('m/d/Y');
+                                    $showDate = $previousDate !== $currentDate;
+                                    $previousDate = $currentDate;
+                                @endphp
+                                <tr class="border-b border-gray-200">
+                                    <td class="pt-4 pb-4">{{ $showDate ? $currentDate : '' }}</td>
+                                    <td class="pt-4 pb-4 text-right pr-4">{{ number_format($hour->hours, 1) }}</td>
+                                    <td class="pt-4 pb-4 pl-8 text-xs font-mono">{{ $hour->description }}</td>
+                                    <td class="pt-4 pb-4 text-right">${{ number_format($amount, 2) }}</td>
+                                </tr>
+                            @endforeach
+                            {{-- Totals Row --}}
+                            <tr class="border-t-2 border-gray-400 font-bold">
+                                <td class="pt-4 pb-4">Total</td>
+                                <td class="pt-4 pb-4 text-right pr-4">{{ number_format($totalHours, 1) }}</td>
+                                <td class="pt-4 pb-4 pl-8"></td>
+                                <td class="pt-4 pb-4 text-right">${{ number_format($totalAmount, 2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 </body>
 </html>

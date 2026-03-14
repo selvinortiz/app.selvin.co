@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Client extends Model
 {
@@ -37,6 +38,7 @@ class Client extends Model
         'invoice_notes',
         'internal_notes',
         'code',
+        'portal_token',
     ];
 
     /**
@@ -60,6 +62,27 @@ class Client extends Model
     public function getDisplayNameAttribute(): string
     {
         return $this->short_name ?? $this->business_name;
+    }
+
+    public function generatePortalToken(): string
+    {
+        $this->update(['portal_token' => $token = Str::random(64)]);
+
+        return $token;
+    }
+
+    public function revokePortalToken(): void
+    {
+        $this->update(['portal_token' => null]);
+    }
+
+    public function getPortalUrlAttribute(): ?string
+    {
+        if (! $this->portal_token) {
+            return null;
+        }
+
+        return url("/portal/{$this->portal_token}");
     }
 
     public function tenant(): BelongsTo

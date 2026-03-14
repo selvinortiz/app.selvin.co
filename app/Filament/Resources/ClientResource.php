@@ -6,6 +6,7 @@ use App\Filament\Resources\ClientResource\Pages;
 use App\Models\Client;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -131,6 +132,66 @@ class ClientResource extends Resource
                     ])
                     ->columns(2)
                     ->collapsible(),
+
+                Forms\Components\Section::make('Client Portal')
+                    ->schema([
+                        Forms\Components\Placeholder::make('portal_url_display')
+                            ->label('Portal URL')
+                            ->content(fn (?Client $record): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(
+                                $record?->portal_token
+                                    ? '<div class="flex items-center gap-2">'
+                                        . '<a href="' . e($record->portal_url) . '" target="_blank" class="text-primary-600 hover:underline break-all">' . e($record->portal_url) . '</a>'
+                                        . '</div>'
+                                    : '<span class="text-gray-500">No portal link generated yet. Use the Generate action below.</span>'
+                            ))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('generate_portal_token')
+                                ->label('Generate Portal Link')
+                                ->icon('heroicon-o-link')
+                                ->color('primary')
+                                ->visible(fn (?Client $record): bool => $record && $record->portal_token === null)
+                                ->action(function (Client $record): void {
+                                    $record->generatePortalToken();
+                                    Notification::make()
+                                        ->title('Portal link generated')
+                                        ->success()
+                                        ->send();
+                                }),
+
+                            Forms\Components\Actions\Action::make('copy_portal_url')
+                                ->label('Copy Link')
+                                ->icon('heroicon-o-clipboard-document')
+                                ->color('gray')
+                                ->visible(fn (?Client $record): bool => $record && $record->portal_token !== null)
+                                ->extraAttributes(fn (?Client $record): array => [
+                                    'x-on:click' => "navigator.clipboard.writeText('" . ($record?->portal_url ?? '') . "')",
+                                ])
+                                ->action(function (Client $record): void {
+                                    Notification::make()
+                                        ->title('Portal link copied to clipboard')
+                                        ->success()
+                                        ->send();
+                                }),
+
+                            Forms\Components\Actions\Action::make('revoke_portal_token')
+                                ->label('Revoke Link')
+                                ->icon('heroicon-o-x-circle')
+                                ->color('danger')
+                                ->visible(fn (?Client $record): bool => $record && $record->portal_token !== null)
+                                ->requiresConfirmation()
+                                ->action(function (Client $record): void {
+                                    $record->revokePortalToken();
+                                    Notification::make()
+                                        ->title('Portal link revoked')
+                                        ->success()
+                                        ->send();
+                                }),
+                        ]),
+                    ])
+                    ->collapsible()
+                    ->hiddenOn('create'),
             ]);
     }
 
@@ -173,12 +234,66 @@ class ClientResource extends Resource
                     ->label('Terms')
                     ->formatStateUsing(fn (int $state): string => "{$state} days")
                     ->sortable(),
+
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('view_portal')
+                    ->label('')
+                    ->tooltip('View Portal')
+                    ->icon('heroicon-o-link')
+                    ->color('success')
+                    ->url(fn (Client $record): ?string => $record->portal_url)
+                    ->openUrlInNewTab()
+                    ->visible(fn (Client $record): bool => $record->portal_token !== null),
+
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+
+                    Tables\Actions\Action::make('generate_portal_link')
+                        ->label('Generate Portal Link')
+                        ->icon('heroicon-o-link')
+                        ->visible(fn (Client $record): bool => $record->portal_token === null)
+                        ->action(function (Client $record): void {
+                            $record->generatePortalToken();
+                            Notification::make()
+                                ->title('Portal link generated')
+                                ->body($record->portal_url)
+                                ->success()
+                                ->send();
+                        }),
+
+                    Tables\Actions\Action::make('copy_portal_link')
+                        ->label('Copy Portal Link')
+                        ->icon('heroicon-o-clipboard-document')
+                        ->visible(fn (Client $record): bool => $record->portal_token !== null)
+                        ->extraAttributes(fn (Client $record): array => [
+                            'x-on:click' => "navigator.clipboard.writeText('{$record->portal_url}')",
+                        ])
+                        ->action(function (Client $record): void {
+                            Notification::make()
+                                ->title('Portal link copied')
+                                ->body($record->portal_url)
+                                ->success()
+                                ->send();
+                        }),
+
+                    Tables\Actions\Action::make('revoke_portal_link')
+                        ->label('Revoke Portal Link')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn (Client $record): bool => $record->portal_token !== null)
+                        ->requiresConfirmation()
+                        ->action(function (Client $record): void {
+                            $record->revokePortalToken();
+                            Notification::make()
+                                ->title('Portal link revoked')
+                                ->success()
+                                ->send();
+                        }),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -32,7 +32,7 @@ class PortalController extends Controller
             $hoursQuery->where('tag', $activeTag);
         }
 
-        $hours = $hoursQuery->orderBy('date', 'asc')->get();
+        $hours = $hoursQuery->orderBy('date', 'desc')->get();
 
         $totalHours = $hours->sum('hours');
         $entriesCount = $hours->count();
@@ -54,15 +54,15 @@ class PortalController extends Controller
             'tag' => $activeTag,
         ]);
 
-        return view('portal.hours', [
+        return view('hours', [
             'client' => $client,
             'tenant' => $tenant,
             'hours' => $hours,
             'month' => $month,
             'totalHours' => $totalHours,
             'entriesCount' => $entriesCount,
-            'prevMonthUrl' => route('portal.hours', $routeParams),
-            'nextMonthUrl' => route('portal.hours', $routeParamsNext),
+            'prevMonthUrl' => route('hours', $routeParams),
+            'nextMonthUrl' => route('hours', $routeParamsNext),
             'tags' => $tags,
             'activeTag' => $activeTag,
             'token' => $token,

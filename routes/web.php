@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', 'manage');
 Route::redirect('/login', 'manage');
 
-Route::get('portal/{token}', PortalController::class)
-    ->name('portal.hours')
+Route::get('hours/{token}', PortalController::class)
+    ->name('hours')
     ->where('token', '[A-Za-z0-9]{64}');
 
 Route::middleware(['auth'])->group(function () {

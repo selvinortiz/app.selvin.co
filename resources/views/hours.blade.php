@@ -109,7 +109,7 @@
             @if($tags->isNotEmpty())
                 <div class="flex flex-wrap items-center gap-2 mb-8 no-print">
                     <span class="text-sm text-gray-500 mr-1">Filter:</span>
-                    <a href="{{ route('portal.hours', array_filter(['token' => $token, 'month' => $month->format('Y-m')])) }}"
+                    <a href="{{ route('hours', array_filter(['token' => $token, 'month' => $month->format('Y-m')])) }}"
                        @class([
                            'px-3 py-1 rounded-full text-sm font-medium border transition-colors',
                            'bg-indigo-600 text-white border-indigo-600' => !$activeTag,
@@ -118,7 +118,7 @@
                         All
                     </a>
                     @foreach($tags as $tag)
-                        <a href="{{ route('portal.hours', array_filter(['token' => $token, 'month' => $month->format('Y-m'), 'tag' => $tag])) }}"
+                        <a href="{{ route('hours', array_filter(['token' => $token, 'month' => $month->format('Y-m'), 'tag' => $tag])) }}"
                            @class([
                                'px-3 py-1 rounded-full text-sm font-medium border transition-colors',
                                'bg-indigo-600 text-white border-indigo-600' => $activeTag === $tag,

@@ -82,7 +82,7 @@ class Client extends Model
             return null;
         }
 
-        return url("/portal/{$this->portal_token}");
+        return url("/hours/{$this->portal_token}");
     }
 
     public function tenant(): BelongsTo

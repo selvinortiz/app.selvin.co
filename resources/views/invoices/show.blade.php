@@ -109,8 +109,7 @@
                     <div class="mt-4 space-y-1">
                         <p>{{ config('company.address.street') }},</p>
                         <p>{{ config('company.address.city') }}, {{ config('company.address.state') }} {{ config('company.address.zip') }}</p>
-                        <p>{{ config('company.contact.phone') }}</p>
-                        <p>{{ config('company.contact.email') }}</p>
+                        <p>{{ config('company.contact.phone') }} | {{ config('company.contact.email') }}</p>
                     </div>
                 </div>
                 <div class="text-right">
@@ -125,7 +124,7 @@
                             <div class="text-left">{{ $invoice->reference }}</div>
                             <div class="text-right font-bold">Due Date:</div>
                             <div class="text-left">{{ $invoice->due_date->format('m/d/Y') }}</div>
-                            <div class="text-right font-bold">Status:</div>
+                            {{-- <div class="text-right font-bold">Status:</div>
                             <div class="text-left">
                                 <span @class([
                                     'px-2 py-1 rounded-full text-xs font-medium',
@@ -135,13 +134,13 @@
                                 ])>
                                     {{ $invoice->getStatusLabel() }}
                                 </span>
-                            </div>
+                            </div> --}}
                         </div>
                     </div>
 
                     {{-- Amount --}}
-                    <div class="mt-8 border border-gray-200 rounded-lg p-4">
-                        <div class="text-3xl font-bold text-center">
+                    <div class="mt-8 border border-gray-200 rounded-lg p-2">
+                        <div class="text-2xl font-bold text-center">
                             ${{ number_format($invoice->amount, 2) }}
                         </div>
                     </div>

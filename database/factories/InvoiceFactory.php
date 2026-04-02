@@ -29,11 +29,14 @@ class InvoiceFactory extends Factory
             'client_id' => Client::factory(),
             'number' => fake()->word(),
             'date' => fake()->date(),
+            'billing_period_start' => fake()->date(),
+            'billing_period_end' => fake()->date(),
             'due_date' => fake()->date(),
             'reference' => fake()->word(),
             'description' => fake()->text(),
             'amount' => fake()->randomFloat(2, 0, 99999999.99),
-            'status' => fake()->word(),
+            'sent_at' => null,
+            'paid_at' => null,
         ];
     }
 }

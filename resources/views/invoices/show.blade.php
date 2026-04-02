@@ -122,6 +122,8 @@
                             <div class="text-left">{{ $invoice->date->format('m/d/Y') }}</div>
                             <div class="text-right font-bold">Reference:</div>
                             <div class="text-left">{{ $invoice->reference }}</div>
+                            <div class="text-right font-bold">Billing Period:</div>
+                            <div class="text-left">{{ $invoice->billing_period_label }}</div>
                             <div class="text-right font-bold">Due Date:</div>
                             <div class="text-left">{{ $invoice->due_date->format('m/d/Y') }}</div>
                             {{-- <div class="text-right font-bold">Status:</div>
@@ -217,6 +219,8 @@
                                 <div class="text-left">{{ $invoice->number }}</div>
                                 <div class="text-right font-bold">Invoice Date:</div>
                                 <div class="text-left">{{ $invoice->date->format('m/d/Y') }}</div>
+                                <div class="text-right font-bold">Billing Period:</div>
+                                <div class="text-left">{{ $invoice->billing_period_label }}</div>
                             </div>
                         </div>
                     </div>
@@ -250,7 +254,7 @@
                                 @endphp
                                 <tr class="border-b border-gray-200">
                                     <td class="pt-4 pb-4">{{ $showDate ? $currentDate : '' }}</td>
-                                    <td class="pt-4 pb-4 text-right pr-4">{{ number_format($hour->hours, 1) }}</td>
+                                    <td class="pt-4 pb-4 text-right pr-4">{{ number_format($hour->hours, 2) }}</td>
                                     <td class="pt-4 pb-4 pl-8 text-xs font-mono">{{ $hour->description }}</td>
                                     <td class="pt-4 pb-4 text-right">${{ number_format($amount, 2) }}</td>
                                 </tr>
@@ -258,7 +262,7 @@
                             {{-- Totals Row --}}
                             <tr class="border-t-2 border-gray-400 font-bold">
                                 <td class="pt-4 pb-4">Total</td>
-                                <td class="pt-4 pb-4 text-right pr-4">{{ number_format($totalHours, 1) }}</td>
+                                <td class="pt-4 pb-4 text-right pr-4">{{ number_format($totalHours, 2) }}</td>
                                 <td class="pt-4 pb-4 pl-8"></td>
                                 <td class="pt-4 pb-4 text-right">${{ number_format($totalAmount, 2) }}</td>
                             </tr>

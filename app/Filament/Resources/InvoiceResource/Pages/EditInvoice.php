@@ -4,10 +4,10 @@ namespace App\Filament\Resources\InvoiceResource\Pages;
 
 use App\Filament\Resources\InvoiceResource;
 use App\Services\InvoiceDescriptionService;
+use App\Services\InvoiceSyncService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
 class EditInvoice extends EditRecord
@@ -30,16 +30,8 @@ class EditInvoice extends EditRecord
 
     public function generateDescription(): void
     {
-        Log::debug('EditInvoice.generateDescription invoked', [
-            'invoice_id' => $this->record?->id,
-        ]);
-
-        $invoice = $this->getRecord();
-        $hours = $invoice->hours()->get();
-
-        Log::debug('EditInvoice.generateDescription hours loaded', [
-            'count' => $hours->count(),
-        ]);
+        $invoice = InvoiceSyncService::sync($this->getRecord());
+        $hours = $invoice->hours;
 
         if ($hours->isEmpty()) {
             Notification::make()
@@ -50,9 +42,12 @@ class EditInvoice extends EditRecord
             return;
         }
 
-        $details = InvoiceDescriptionService::generate($hours, $invoice->date);
+        $details = InvoiceDescriptionService::generate(
+            $hours,
+            $invoice->date,
+            $invoice->billing_period_label
+        );
 
-        // Update form data directly without triggering validation
         $this->form->fill([
             ...$this->form->getState(),
             'description' => $details['description'],

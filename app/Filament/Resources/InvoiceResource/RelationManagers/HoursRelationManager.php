@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\InvoiceResource\RelationManagers;
 
+use App\Exceptions\NonContiguousBillingPeriodException;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use App\Models\Hour;
+use App\Services\InvoiceSyncService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Filament\Notifications\Notification;
 
 class HoursRelationManager extends RelationManager
 {
@@ -50,7 +54,20 @@ class HoursRelationManager extends RelationManager
                     )
                     ->after(function ($record, $livewire) {
                         $invoice = $livewire->getOwnerRecord();
-                        $record->update(['invoice_id' => $invoice->id]);
+
+                        try {
+                            DB::transaction(function () use ($record, $invoice): void {
+                                $record->update(['invoice_id' => $invoice->id]);
+                                InvoiceSyncService::sync($invoice);
+                            });
+                        } catch (NonContiguousBillingPeriodException $e) {
+                            Notification::make()
+                                ->title('Cannot Link Hours')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+
                         $livewire->dispatch('refreshInvoice');
                     }),
             ])
@@ -62,7 +79,20 @@ class HoursRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->action(function (Hour $record, $livewire) {
                         $invoice = $livewire->getOwnerRecord();
-                        $record->update(['invoice_id' => null]);
+
+                        try {
+                            DB::transaction(function () use ($record, $invoice): void {
+                                $record->update(['invoice_id' => null]);
+                                InvoiceSyncService::sync($invoice);
+                            });
+                        } catch (NonContiguousBillingPeriodException $e) {
+                            Notification::make()
+                                ->title('Cannot Remove Hours')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+
                         $livewire->dispatch('refreshInvoice');
                     }),
             ]);

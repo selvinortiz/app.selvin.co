@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 return new class extends Migration
 {
@@ -12,6 +13,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        $driver = DB::getDriverName();
+
         Schema::table('invoices', function (Blueprint $table) {
             // Add new timestamp columns
             $table->timestamp('sent_at')->nullable()->after('amount');
@@ -33,29 +36,73 @@ return new class extends Migration
             ]);
 
         // Migrate Sent invoices: sent_at = date (as datetime with 13:00), paid_at = null
-        DB::table('invoices')
-            ->where('status', 'sent')
-            ->update([
-                'sent_at' => DB::raw("CONCAT(date, ' 13:00:00')"),
-                'paid_at' => null,
-            ]);
+        if ($driver === 'sqlite') {
+            DB::table('invoices')
+                ->where('status', 'sent')
+                ->orderBy('id')
+                ->get(['id', 'date'])
+                ->each(function ($invoice): void {
+                    DB::table('invoices')
+                        ->where('id', $invoice->id)
+                        ->update([
+                            'sent_at' => Carbon::parse($invoice->date)->setTime(13, 0, 0),
+                            'paid_at' => null,
+                        ]);
+                });
+        } else {
+            DB::table('invoices')
+                ->where('status', 'sent')
+                ->update([
+                    'sent_at' => DB::raw("CONCAT(date, ' 13:00:00')"),
+                    'paid_at' => null,
+                ]);
+        }
 
         // Migrate Paid invoices
         // First, set sent_at for all paid invoices
-        DB::table('invoices')
-            ->where('status', 'paid')
-            ->update([
-                'sent_at' => DB::raw("CONCAT(date, ' 13:00:00')"),
-            ]);
+        if ($driver === 'sqlite') {
+            DB::table('invoices')
+                ->where('status', 'paid')
+                ->orderBy('id')
+                ->get(['id', 'date'])
+                ->each(function ($invoice): void {
+                    DB::table('invoices')
+                        ->where('id', $invoice->id)
+                        ->update([
+                            'sent_at' => Carbon::parse($invoice->date)->setTime(13, 0, 0),
+                        ]);
+                });
+        } else {
+            DB::table('invoices')
+                ->where('status', 'paid')
+                ->update([
+                    'sent_at' => DB::raw("CONCAT(date, ' 13:00:00')"),
+                ]);
+        }
 
         // For Mod Creative: paid_at = date + 7 days (as datetime with 13:00)
         if ($modCreativeClientId) {
-            DB::table('invoices')
-                ->where('status', 'paid')
-                ->where('client_id', $modCreativeClientId)
-                ->update([
-                    'paid_at' => DB::raw("DATE_ADD(CONCAT(date, ' 13:00:00'), INTERVAL 7 DAY)"),
-                ]);
+            if ($driver === 'sqlite') {
+                DB::table('invoices')
+                    ->where('status', 'paid')
+                    ->where('client_id', $modCreativeClientId)
+                    ->orderBy('id')
+                    ->get(['id', 'date'])
+                    ->each(function ($invoice): void {
+                        DB::table('invoices')
+                            ->where('id', $invoice->id)
+                            ->update([
+                                'paid_at' => Carbon::parse($invoice->date)->setTime(13, 0, 0)->addDays(7),
+                            ]);
+                    });
+            } else {
+                DB::table('invoices')
+                    ->where('status', 'paid')
+                    ->where('client_id', $modCreativeClientId)
+                    ->update([
+                        'paid_at' => DB::raw("DATE_ADD(CONCAT(date, ' 13:00:00'), INTERVAL 7 DAY)"),
+                    ]);
+            }
         }
 
         // For all other clients: paid_at = due_date (as datetime with 13:00)
@@ -66,9 +113,22 @@ return new class extends Migration
             $otherPaidQuery->where('client_id', '!=', $modCreativeClientId);
         }
 
-        $otherPaidQuery->update([
-            'paid_at' => DB::raw("CONCAT(due_date, ' 13:00:00')"),
-        ]);
+        if ($driver === 'sqlite') {
+            $otherPaidQuery
+                ->orderBy('id')
+                ->get(['id', 'due_date'])
+                ->each(function ($invoice): void {
+                    DB::table('invoices')
+                        ->where('id', $invoice->id)
+                        ->update([
+                            'paid_at' => Carbon::parse($invoice->due_date)->setTime(13, 0, 0),
+                        ]);
+                });
+        } else {
+            $otherPaidQuery->update([
+                'paid_at' => DB::raw("CONCAT(due_date, ' 13:00:00')"),
+            ]);
+        }
 
         // Add indexes for performance
         Schema::table('invoices', function (Blueprint $table) {

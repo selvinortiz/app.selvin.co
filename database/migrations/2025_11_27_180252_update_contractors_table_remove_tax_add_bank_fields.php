@@ -12,12 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('contractors', function (Blueprint $table) {
-            // Remove tax-related fields
-            $table->dropColumn(['tax_id', 'date_of_birth']);
+            if (Schema::hasColumn('contractors', 'tax_id')) {
+                $table->dropColumn('tax_id');
+            }
 
-            // Add bank information fields
-            $table->string('bank_name')->nullable()->after('payment_method');
-            $table->enum('account_type', ['checking', 'savings', 'other'])->nullable()->after('bank_name');
+            if (Schema::hasColumn('contractors', 'date_of_birth')) {
+                $table->dropColumn('date_of_birth');
+            }
+
+            if (! Schema::hasColumn('contractors', 'bank_name')) {
+                $table->string('bank_name')->nullable()->after('payment_method');
+            }
+
+            if (! Schema::hasColumn('contractors', 'account_type')) {
+                $table->enum('account_type', ['checking', 'savings', 'other'])->nullable()->after('bank_name');
+            }
         });
     }
 
@@ -27,12 +36,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('contractors', function (Blueprint $table) {
-            // Remove bank information fields
-            $table->dropColumn(['bank_name', 'account_type']);
+            if (Schema::hasColumn('contractors', 'bank_name')) {
+                $table->dropColumn('bank_name');
+            }
 
-            // Restore tax-related fields
-            $table->string('tax_id')->nullable()->comment('Foreign Tax ID (FTIN) or EIN/SSN')->after('country');
-            $table->date('date_of_birth')->nullable()->after('tax_id');
+            if (Schema::hasColumn('contractors', 'account_type')) {
+                $table->dropColumn('account_type');
+            }
+
+            if (! Schema::hasColumn('contractors', 'tax_id')) {
+                $table->string('tax_id')->nullable()->comment('Foreign Tax ID (FTIN) or EIN/SSN')->after('country');
+            }
+
+            if (! Schema::hasColumn('contractors', 'date_of_birth')) {
+                $table->date('date_of_birth')->nullable()->after('tax_id');
+            }
         });
     }
 };

@@ -2,42 +2,57 @@
 
 namespace App\Filament\Resources\InvoiceResource\Pages;
 
+use App\Exceptions\NonContiguousBillingPeriodException;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Hour;
+use App\Services\InvoiceBillingPeriodService;
 use App\Services\InvoiceDescriptionService;
+use App\Services\InvoiceSyncService;
 use Carbon\Carbon;
-use Filament\Actions;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CreateInvoice extends CreateRecord
 {
     protected static string $resource = InvoiceResource::class;
 
+    protected array $selectedBillingMonths = [];
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $invoiceDate = Carbon::parse($data['date']);
+        $billingMonths = $data['billing_months'] ?? [$invoiceDate->format('Y-m')];
+
+        try {
+            $this->selectedBillingMonths = InvoiceBillingPeriodService::normalizeMonthKeys($billingMonths);
+        } catch (NonContiguousBillingPeriodException $e) {
+            throw ValidationException::withMessages([
+                'billing_months' => $e->getMessage(),
+            ]);
+        }
+
+        [$billingPeriodStart, $billingPeriodEnd] = InvoiceBillingPeriodService::fromMonthKeys($this->selectedBillingMonths);
+        $data['billing_period_start'] = $billingPeriodStart->toDateString();
+        $data['billing_period_end'] = $billingPeriodEnd->toDateString();
+        $data['reference'] = InvoiceBillingPeriodService::buildReference($billingPeriodStart, $billingPeriodEnd);
+        unset($data['billing_months']);
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
-        // Get all unbilled hours for this client in the invoice month
-        $date = Carbon::parse($this->record->date);
+        [$billingPeriodStart, $billingPeriodEnd] = InvoiceBillingPeriodService::fromMonthKeys($this->selectedBillingMonths);
 
-        Hour::query()
-            ->where('client_id', $this->record->client_id)
-            ->where('is_billable', true)
-            ->whereNull('invoice_id')
-            ->whereMonth('date', $date->month)
-            ->whereYear('date', $date->year)
+        $this->hoursQueryForRange($this->record->client_id, $billingPeriodStart, $billingPeriodEnd)
             ->update(['invoice_id' => $this->record->id]);
+
+        $this->record = InvoiceSyncService::sync($this->record);
     }
 
     public function generateDescription(): void
     {
-        Log::debug('CreateInvoice.generateDescription invoked', [
-            'record_id' => $this->record?->id,
-        ]);
-
-        // Get current form data without validation
         $data = $this->data ?? [];
         $clientId = $data['client_id'] ?? null;
         $date = $data['date'] ?? null;
@@ -52,36 +67,40 @@ class CreateInvoice extends CreateRecord
         }
 
         $date = Carbon::parse($date);
+        $billingMonths = $data['billing_months'] ?? [$date->format('Y-m')];
 
-        // For new invoices, use unbilled hours for the client/date
-        $hours = Hour::query()
-            ->where('client_id', $clientId)
-            ->where('is_billable', true)
-            ->whereNull('invoice_id')
-            ->whereMonth('date', $date->month)
-            ->whereYear('date', $date->year)
-            ->get();
+        try {
+            $billingMonths = InvoiceBillingPeriodService::normalizeMonthKeys($billingMonths);
+        } catch (NonContiguousBillingPeriodException $e) {
+            Notification::make()
+                ->title('Invalid Billing Period')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
 
-        Log::debug('CreateInvoice.generateDescription hours loaded', [
-            'count' => $hours->count(),
-        ]);
+        [$billingPeriodStart, $billingPeriodEnd] = InvoiceBillingPeriodService::fromMonthKeys($billingMonths);
+
+        $hours = $this->hoursQueryForRange($clientId, $billingPeriodStart, $billingPeriodEnd)->get();
 
         if ($hours->isEmpty()) {
             Notification::make()
                 ->title('No Hours Found')
-                ->body('No billable hours found for the selected client and date.')
+                ->body('No billable hours found for the selected client and months.')
                 ->warning()
                 ->send();
             return;
         }
 
-        $details = InvoiceDescriptionService::generate($hours, $date);
+        $details = InvoiceDescriptionService::generate(
+            $hours,
+            $date,
+            InvoiceBillingPeriodService::buildLabel($billingPeriodStart, $billingPeriodEnd)
+        );
 
-        // Update form data directly without triggering validation
         $this->data['description'] = $details['description'];
         $this->data['amount'] = $details['amount'];
-
-        // Update the form state
         $this->form->fill($this->data);
 
         Notification::make()
@@ -89,5 +108,17 @@ class CreateInvoice extends CreateRecord
             ->body('Invoice description and amount have been generated from available hours.')
             ->success()
             ->send();
+    }
+
+    protected function hoursQueryForRange(int $clientId, Carbon $billingPeriodStart, Carbon $billingPeriodEnd)
+    {
+        return Hour::query()
+            ->where('client_id', $clientId)
+            ->where('is_billable', true)
+            ->whereNull('invoice_id')
+            ->whereBetween('date', [
+                $billingPeriodStart->copy()->startOfMonth()->toDateString(),
+                $billingPeriodEnd->copy()->endOfMonth()->toDateString(),
+            ]);
     }
 }

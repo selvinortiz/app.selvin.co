@@ -2,30 +2,35 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use OpenAI\Client as OpenAIClient;
+use OpenAI\Contracts\ClientContract as OpenAIClientContract;
 use OpenAI\Laravel\Facades\OpenAI;
-use Illuminate\Support\Str;
 
 class InvoiceDescriptionService
 {
-    public static function generate(Collection $hours, Carbon $date): array
+    public static function generate(Collection $hours, Carbon $date, ?string $periodLabel = null): array
     {
+        $periodLabel = $periodLabel ?? $date->format('F Y');
+
         if ($hours->isEmpty()) {
             return [
                 'amount' => 0,
-                'summary' => '',
-                'description' => "No billable time entries found for {$date->format('F Y')}.",
+                'description' => "No billable time entries found for {$periodLabel}.",
             ];
         }
 
         $totalHours = $hours->sum('hours');
         $totalAmount = $hours->sum(fn ($entry) => $entry->hours * $entry->rate);
 
-        // Group entries by description to consolidate similar work
-        $groupedEntries = $hours->groupBy('description')->map(function ($entries) {
+        // Keep identical work at different rates split into separate line items.
+        $groupedEntries = $hours->groupBy(
+            fn ($entry) => $entry->description . '|' . number_format((float) $entry->rate, 2, '.', '')
+        )->map(function ($entries) {
             return [
+                'description' => $entries->first()->description,
                 'hours' => $entries->sum('hours'),
                 'rate' => $entries->first()->rate,
                 'amount' => $entries->sum(fn ($entry) => $entry->hours * $entry->rate),
@@ -34,17 +39,17 @@ class InvoiceDescriptionService
 
         $lineItems = '';
 
-        foreach ($groupedEntries as $desc => $data) {
+        foreach ($groupedEntries as $data) {
             $lineItems .= sprintf(
                 "- %s (%.2f hours @ $%.2f/hr) = $%.2f\n",
-                $desc,
+                $data['description'],
                 $data['hours'],
                 $data['rate'],
                 $data['amount']
             );
         }
 
-        $deterministicDescription = "Professional Services for {$date->format('F Y')}\n\n" .
+        $deterministicDescription = "Professional Services for {$periodLabel}\n\n" .
             $lineItems .
             "\nTotal Hours: " . number_format($totalHours, 2) .
             "\nTotal Amount: $" . number_format($totalAmount, 2);
@@ -53,16 +58,13 @@ class InvoiceDescriptionService
             trim($lineItems),
             $totalHours,
             $totalAmount,
-            $date
+            $periodLabel
         );
 
         $finalDescription = $aiDescription ?: $deterministicDescription;
 
-        $summary = sprintf('Total Hours (%.2f)', $totalHours);
-
         return [
             'amount' => $totalAmount,
-            'summary' => $summary,
             'description' => $finalDescription,
         ];
     }
@@ -71,70 +73,128 @@ class InvoiceDescriptionService
         string $lineItems,
         float $totalHours,
         float $totalAmount,
-        Carbon $date
+        string $periodLabel
     ): ?string {
         if ($lineItems === '') {
             return null;
         }
 
+        $isMultiMonth = str_contains($periodLabel, '–');
+        $periodWord = $isMultiMonth ? 'period' : 'month';
+        $opener = $isMultiMonth ? "Work this period focused on" : "Work this month focused on";
+
         $prompt = implode("\n", [
             'You are a senior software consultant writing an invoice description for a client.',
-            'Output short and clear paragraphs (combined max 600 characters) that starts with "Work this month focused on".',
+            "Output short and clear paragraphs (combined max 600 characters) that starts with \"{$opener}\".",
             'Write in a confident, outcome-focused tone, and active style where context and value is highlighted.',
             'Highlight major workstreams, shipped releases, fixes, refactors, integrations, and testing.',
             'Avoid filler, avoid first-person, and avoid dollar amounts. Keep it concise and human.',
             'IMPORTANT: Avoid m-dashes, hyphens, lists, or buzzwords.',
-            'End with a blank line followed by: Total Hours (' . number_format($totalHours, 0) . ')',
+            'End with a blank line followed by: Total Hours (' . number_format($totalHours, 2, '.', '') . ')',
             'Use the billable time entries below as source material; do not invent work.',
             'For context only (do not mention money), total amount: $' . number_format($totalAmount, 2) . '.',
-            'Month: ' . $date->format('F Y') . '.',
+            "Billing {$periodWord}: {$periodLabel}.",
             'Billable time entries:',
             $lineItems,
             'Now write the description.',
         ]);
 
-        $options = [];
+        $previousMaxExecutionTime = static::setUnlimitedExecutionTime();
+        $previousOpenAiTimeout = static::configureOpenAiTimeout(0);
 
-        $timeout = config('openai.request_timeout', 0);
-
-        if ($timeout) {
-            $options['timeout'] = $timeout;
-        }
-
-        $attempts = 0;
-        $maxAttempts = 2;
-        $lastError = null;
-
-        while ($attempts < $maxAttempts) {
-            try {
-                $response = OpenAI::responses()->create([
-                    'model' => 'gpt-5-mini',
-                    'input' => $prompt,
-                ], $options);
-
-                Log::info('Response', $response->toArray());
-                $text = $response->outputText;
-
-                if ($text !== '') {
-                    return $text;
-                }
-            } catch (\Throwable $e) {
-                $lastError = $e;
-                Log::warning('AI invoice description generation failed', [
-                    'attempt' => $attempts + 1,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            $attempts++;
-        }
-
-        if ($lastError) {
-            Log::error('AI invoice description generation exhausted retries', [
-                'error' => $lastError->getMessage(),
+        try {
+            $response = OpenAI::responses()->create([
+                'model' => 'gpt-5-mini',
+                'input' => $prompt,
             ]);
+
+            $text = $response->outputText;
+
+            if ($text !== '') {
+                return static::normalizeAiDescription($text, $totalHours);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('AI invoice description generation failed', [
+                'timeout' => 'none',
+                'error' => $e->getMessage(),
+            ]);
+            Log::error('AI invoice description generation fell back to deterministic output', [
+                'timeout' => 'none',
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            static::restoreExecutionTimeLimit($previousMaxExecutionTime);
+            static::restoreOpenAiTimeout($previousOpenAiTimeout);
         }
 
         return null;
+    }
+
+    protected static function setUnlimitedExecutionTime(): int
+    {
+        $previousMaxExecutionTime = (int) ini_get('max_execution_time');
+
+        if (! app()->runningUnitTests()) {
+            @set_time_limit(0);
+        }
+
+        return $previousMaxExecutionTime;
+    }
+
+    protected static function restoreExecutionTimeLimit(int $previousMaxExecutionTime): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        if ($previousMaxExecutionTime > 0) {
+            @set_time_limit($previousMaxExecutionTime);
+        }
+    }
+
+    protected static function configureOpenAiTimeout(int|string|null $timeout): mixed
+    {
+        $previousTimeout = config('openai.request_timeout');
+
+        if (app()->runningUnitTests()) {
+            return $previousTimeout;
+        }
+
+        config(['openai.request_timeout' => $timeout]);
+
+        app()->forgetInstance('openai');
+        app()->forgetInstance(OpenAIClientContract::class);
+        app()->forgetInstance(OpenAIClient::class);
+        OpenAI::clearResolvedInstance('openai');
+
+        return $previousTimeout;
+    }
+
+    protected static function restoreOpenAiTimeout(mixed $previousTimeout): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        config(['openai.request_timeout' => $previousTimeout]);
+
+        app()->forgetInstance('openai');
+        app()->forgetInstance(OpenAIClientContract::class);
+        app()->forgetInstance(OpenAIClient::class);
+        OpenAI::clearResolvedInstance('openai');
+    }
+
+    protected static function normalizeAiDescription(string $text, float $totalHours): string
+    {
+        $text = trim($text);
+        $totalHoursLine = 'Total Hours (' . number_format($totalHours, 2, '.', '') . ')';
+
+        $text = preg_replace('/Total Hours \([^)]+\)\s*$/', $totalHoursLine, $text) ?? $text;
+
+        if (!str_ends_with($text, $totalHoursLine)) {
+            $text .= "\n\n{$totalHoursLine}";
+        }
+
+        return $text;
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InvoiceStatus;
+use App\Services\InvoiceBillingPeriodService;
 use App\Models\Concerns\HasUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,8 @@ class Invoice extends Model
         'user_id' => 'integer',
         'client_id' => 'integer',
         'date' => 'date',
+        'billing_period_start' => 'date',
+        'billing_period_end' => 'date',
         'due_date' => 'date',
         'amount' => 'decimal:2',
         'sent_at' => 'datetime',
@@ -63,6 +66,18 @@ class Invoice extends Model
     public function hours(): HasMany
     {
         return $this->hasMany(Hour::class);
+    }
+
+    public function getResolvedBillingPeriod(): array
+    {
+        return InvoiceBillingPeriodService::resolveForInvoice($this);
+    }
+
+    public function getBillingPeriodLabelAttribute(): string
+    {
+        [$start, $end] = $this->getResolvedBillingPeriod();
+
+        return InvoiceBillingPeriodService::buildLabel($start, $end);
     }
 
     /**

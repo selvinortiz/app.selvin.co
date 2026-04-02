@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources;
 
-use App\Enums\InvoiceStatus;
+use App\Exceptions\NonContiguousBillingPeriodException;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Helpers\InvoiceNumber;
 use App\Models\Client;
 use App\Models\Hour;
 use App\Models\Invoice;
-use App\Services\InvoiceDescriptionService;
+use App\Services\InvoiceBillingPeriodService;
 use App\Services\MonthContextService;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -29,7 +29,9 @@ class InvoiceResource extends Resource
 
     protected static function updateInvoiceNumber(Get $get, Set $set): void
     {
-        if (!$get('client_id')) return;
+        if (!$get('client_id')) {
+            return;
+        }
 
         $date = MonthContextService::getSelectedMonth();
 
@@ -41,7 +43,9 @@ class InvoiceResource extends Resource
 
         if ($client) {
             $set('number', InvoiceNumber::generate($client, $date));
-            $set('reference', static::generateReference($date));
+
+            [$billingPeriodStart, $billingPeriodEnd] = static::resolveReferencePeriod($get, $date);
+            $set('reference', InvoiceBillingPeriodService::buildReference($billingPeriodStart, $billingPeriodEnd));
         }
     }
 
@@ -79,14 +83,64 @@ class InvoiceResource extends Resource
         $set('due_date', $dueDate);
     }
 
-    protected static function generateReference(Carbon $date): string
+    protected static function syncBillingMonthsWithInvoiceDate(Get $get, Set $set, mixed $state, mixed $old): void
     {
-        // Format: TL + 3-letter month (uppercase) + 4-digit year
-        // Example: TLNOV2025 for November 2025
-        $monthAbbr = strtoupper($date->format('M')); // Gets 3-letter month abbreviation
-        $year = $date->format('Y');
+        if (blank($state)) {
+            return;
+        }
 
-        return "TL{$monthAbbr}{$year}";
+        $newMonth = Carbon::parse($state)->format('Y-m');
+        $billingMonths = collect($get('billing_months'))
+            ->filter(fn ($value) => is_string($value) && preg_match('/^\d{4}-\d{2}$/', $value))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($billingMonths === []) {
+            $set('billing_months', [$newMonth]);
+
+            return;
+        }
+
+        $oldMonth = filled($old) ? Carbon::parse($old)->format('Y-m') : null;
+
+        if (count($billingMonths) === 1 && ($oldMonth === null || $billingMonths[0] === $oldMonth)) {
+            $set('billing_months', [$newMonth]);
+        }
+    }
+
+    protected static function resolveReferencePeriod(Get $get, Carbon $date): array
+    {
+        $billingMonths = $get('billing_months');
+
+        if (!is_array($billingMonths) || $billingMonths === []) {
+            $month = $date->copy()->startOfMonth();
+
+            return [$month, $month->copy()];
+        }
+
+        $billingMonths = collect($billingMonths)
+            ->filter(fn ($value) => is_string($value) && preg_match('/^\d{4}-\d{2}$/', $value))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($billingMonths === []) {
+            $month = $date->copy()->startOfMonth();
+
+            return [$month, $month->copy()];
+        }
+
+        try {
+            return InvoiceBillingPeriodService::fromMonthKeys($billingMonths);
+        } catch (NonContiguousBillingPeriodException) {
+            return [
+                Carbon::createFromFormat('Y-m', $billingMonths[0])->startOfMonth(),
+                Carbon::createFromFormat('Y-m', $billingMonths[array_key_last($billingMonths)])->startOfMonth(),
+            ];
+        }
     }
 
     public static function form(Form $form): Form
@@ -130,7 +184,8 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default(MonthContextService::getSelectedMonth()->toDateString())
                             ->live()
-                            ->afterStateUpdated(function (Get $get, Set $set) {
+                            ->afterStateUpdated(function (Get $get, Set $set, $state, $old) {
+                                static::syncBillingMonthsWithInvoiceDate($get, $set, $state, $old);
                                 static::updateInvoiceNumber($get, $set);
                                 static::updateDueDate($get, $set);
                             }),
@@ -163,6 +218,66 @@ class InvoiceResource extends Resource
                 Forms\Components\Section::make('Amount & Description')
                     ->description('Enter the invoice amount and detailed description.')
                     ->schema([
+                        Forms\Components\CheckboxList::make('billing_months')
+                            ->label('Months to Include')
+                            ->helperText('Select a contiguous range of unbilled months to include on this invoice.')
+                            ->options(function (Get $get) {
+                                $clientId = $get('client_id');
+                                if (!$clientId) {
+                                    return [];
+                                }
+
+                                return Hour::query()
+                                    ->where('client_id', $clientId)
+                                    ->where('is_billable', true)
+                                    ->whereNull('invoice_id')
+                                    ->get()
+                                    ->groupBy(fn (Hour $hour) => Carbon::parse($hour->date)->format('Y-m'))
+                                    ->sortKeysDesc()
+                                    ->mapWithKeys(function ($row) {
+                                        $monthKey = $row->first()->date->format('Y-m');
+                                        $label = Carbon::createFromFormat('Y-m', $monthKey)->format('F Y');
+                                        $totalHours = $row->sum('hours');
+
+                                        return [$monthKey => "{$label} (" . number_format($totalHours, 2) . ' hrs)'];
+                                    })
+                                    ->toArray();
+                            })
+                            ->default(function (Get $get) {
+                                $date = Carbon::parse($get('date') ?: MonthContextService::getSelectedMonth());
+
+                                return [$date->format('Y-m')];
+                            })
+                            ->visible(fn (Get $get, $livewire) => $livewire instanceof Pages\CreateInvoice && filled($get('client_id')))
+                            ->live()
+                            ->dehydrated(fn ($livewire) => $livewire instanceof Pages\CreateInvoice)
+                            ->columns(3)
+                            ->columnSpanFull()
+                            ->rule(function () {
+                                return function (string $attribute, $value, $fail): void {
+                                    if (!is_array($value) || $value === []) {
+                                        return;
+                                    }
+
+                                    try {
+                                        InvoiceBillingPeriodService::normalizeMonthKeys($value);
+                                    } catch (NonContiguousBillingPeriodException $e) {
+                                        $fail($e->getMessage());
+                                    }
+                                };
+                            })
+                            ->afterStateUpdated(function (Get $get, Set $set, ?array $state) {
+                                $date = Carbon::parse($get('date') ?: MonthContextService::getSelectedMonth());
+                                [$billingPeriodStart, $billingPeriodEnd] = static::resolveReferencePeriod($get, $date);
+                                $set('reference', InvoiceBillingPeriodService::buildReference($billingPeriodStart, $billingPeriodEnd));
+                            }),
+
+                        Forms\Components\Placeholder::make('billing_period_display')
+                            ->label('Billing Period')
+                            ->content(fn (?Invoice $record): string => $record?->billing_period_label ?? 'Will be derived from linked hours.')
+                            ->visible(fn ($livewire) => $livewire instanceof Pages\EditInvoice)
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('amount')
                             ->label('Invoice Amount')
                             ->numeric()

@@ -57,12 +57,13 @@ class CreateInvoice extends CreateRecord
         $clientId = $data['client_id'] ?? null;
         $date = $data['date'] ?? null;
 
-        if (!$clientId || !$date) {
+        if (! $clientId || ! $date) {
             Notification::make()
                 ->title('Missing Information')
                 ->body('Please select a client and invoice date first.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -77,6 +78,7 @@ class CreateInvoice extends CreateRecord
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -90,6 +92,7 @@ class CreateInvoice extends CreateRecord
                 ->body('No billable hours found for the selected client and months.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -103,11 +106,33 @@ class CreateInvoice extends CreateRecord
         $this->data['amount'] = $details['amount'];
         $this->form->fill($this->data);
 
-        Notification::make()
-            ->title('Description Generated')
-            ->body('Invoice description and amount have been generated from available hours.')
-            ->success()
-            ->send();
+        $notification = Notification::make();
+
+        if ($details['used_ai']) {
+            $notification
+                ->title('Description Generated')
+                ->body('Invoice description and amount have been generated from available hours.')
+                ->success();
+        } else {
+            $notification
+                ->title('Fallback Description Generated')
+                ->body(static::fallbackNotificationBody($details['fallback_reason']))
+                ->warning();
+        }
+
+        $notification->send();
+    }
+
+    protected static function fallbackNotificationBody(?string $reason): string
+    {
+        $body = 'OpenAI could not generate the summary, so the line-item fallback was used.';
+        $displayReason = InvoiceDescriptionService::fallbackReasonForDisplay($reason);
+
+        if ($displayReason) {
+            $body .= " Reason: {$displayReason}";
+        }
+
+        return $body;
     }
 
     protected function hoursQueryForRange(int $clientId, Carbon $billingPeriodStart, Carbon $billingPeriodEnd)

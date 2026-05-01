@@ -8,14 +8,13 @@ use Throwable;
 
 trait MocksOpenAIResponses
 {
-    protected function mockOpenAiTextResponse(string $text): void
+    protected function mockOpenAiTextResponse(string $text, ?callable $assertParameters = null): void
     {
         $response = new class($text)
         {
             public function __construct(
                 public string $outputText,
-            ) {
-            }
+            ) {}
 
             public function toArray(): array
             {
@@ -26,6 +25,13 @@ trait MocksOpenAIResponses
         $responses = Mockery::mock();
         $responses
             ->shouldReceive('create')
+            ->with(Mockery::on(function (array $parameters) use ($assertParameters): bool {
+                if ($assertParameters !== null) {
+                    $assertParameters($parameters);
+                }
+
+                return true;
+            }))
             ->andReturn($response);
 
         $client = Mockery::mock();
@@ -36,11 +42,18 @@ trait MocksOpenAIResponses
         OpenAI::swap($client);
     }
 
-    protected function mockOpenAiFailure(?Throwable $throwable = null): void
+    protected function mockOpenAiFailure(?Throwable $throwable = null, ?callable $assertParameters = null): void
     {
         $responses = Mockery::mock();
         $responses
             ->shouldReceive('create')
+            ->with(Mockery::on(function (array $parameters) use ($assertParameters): bool {
+                if ($assertParameters !== null) {
+                    $assertParameters($parameters);
+                }
+
+                return true;
+            }))
             ->andThrow($throwable ?? new \RuntimeException('OpenAI unavailable in test.'));
 
         $client = Mockery::mock();

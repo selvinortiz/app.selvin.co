@@ -41,6 +41,8 @@ class InvoiceDescriptionServiceTest extends TestCase
 
         $this->assertSame(575.0, $details['amount']);
         $this->assertArrayNotHasKey('summary', $details);
+        $this->assertFalse($details['used_ai']);
+        $this->assertSame('OpenAI unavailable in test.', $details['fallback_reason']);
         $this->assertStringContainsString(
             '- Shared task (1.50 hours @ $150.00/hr) = $225.00',
             $details['description']
@@ -80,6 +82,46 @@ class InvoiceDescriptionServiceTest extends TestCase
         $this->assertSame(
             "Work this period focused on catch-up work.\n\nTotal Hours (8.50)",
             $details['description']
+        );
+        $this->assertTrue($details['used_ai']);
+        $this->assertNull($details['fallback_reason']);
+    }
+
+    public function test_it_bounds_the_openai_request_to_reduce_rate_limit_pressure(): void
+    {
+        $this->mockOpenAiTextResponse(
+            "Work this month focused on delivery work.\n\nTotal Hours (1.00)",
+            function (array $parameters): void {
+                $this->assertSame('gpt-5-mini', $parameters['model']);
+                $this->assertSame(['effort' => 'minimal'], $parameters['reasoning']);
+                $this->assertSame(700, $parameters['max_output_tokens']);
+                $this->assertFalse($parameters['store']);
+            }
+        );
+
+        $hours = new Collection([
+            (object) [
+                'date' => '2026-04-10',
+                'description' => 'Delivery work',
+                'hours' => 1.00,
+                'rate' => 150.00,
+            ],
+        ]);
+
+        $details = InvoiceDescriptionService::generate(
+            $hours,
+            Carbon::parse('2026-04-01'),
+            'April 2026'
+        );
+
+        $this->assertTrue($details['used_ai']);
+    }
+
+    public function test_it_summarizes_rate_limit_errors_for_display(): void
+    {
+        $this->assertSame(
+            'OpenAI rate limit exceeded.',
+            InvoiceDescriptionService::fallbackReasonForDisplay('Request rate limit has been exceeded.')
         );
     }
 }

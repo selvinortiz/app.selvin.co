@@ -39,6 +39,7 @@ class EditInvoice extends EditRecord
                 ->body('No hours are currently linked to this invoice.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -54,11 +55,33 @@ class EditInvoice extends EditRecord
             'amount' => $details['amount'],
         ]);
 
-        Notification::make()
-            ->title('Description Generated')
-            ->body('Invoice description and amount have been generated from linked hours.')
-            ->success()
-            ->send();
+        $notification = Notification::make();
+
+        if ($details['used_ai']) {
+            $notification
+                ->title('Description Generated')
+                ->body('Invoice description and amount have been generated from linked hours.')
+                ->success();
+        } else {
+            $notification
+                ->title('Fallback Description Generated')
+                ->body(static::fallbackNotificationBody($details['fallback_reason']))
+                ->warning();
+        }
+
+        $notification->send();
+    }
+
+    protected static function fallbackNotificationBody(?string $reason): string
+    {
+        $body = 'OpenAI could not generate the summary, so the line-item fallback was used.';
+        $displayReason = InvoiceDescriptionService::fallbackReasonForDisplay($reason);
+
+        if ($displayReason) {
+            $body .= " Reason: {$displayReason}";
+        }
+
+        return $body;
     }
 
     protected function getRedirectUrl(): string

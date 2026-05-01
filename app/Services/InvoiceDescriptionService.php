@@ -11,6 +11,8 @@ use OpenAI\Laravel\Facades\OpenAI;
 
 class InvoiceDescriptionService
 {
+    protected const OPENAI_MODEL = 'gpt-5-mini';
+
     public static function generate(Collection $hours, Carbon $date, ?string $periodLabel = null): array
     {
         $periodLabel = $periodLabel ?? $date->format('F Y');
@@ -19,6 +21,8 @@ class InvoiceDescriptionService
             return [
                 'amount' => 0,
                 'description' => "No billable time entries found for {$periodLabel}.",
+                'used_ai' => false,
+                'fallback_reason' => null,
             ];
         }
 
@@ -27,7 +31,7 @@ class InvoiceDescriptionService
 
         // Keep identical work at different rates split into separate line items.
         $groupedEntries = $hours->groupBy(
-            fn ($entry) => $entry->description . '|' . number_format((float) $entry->rate, 2, '.', '')
+            fn ($entry) => $entry->description.'|'.number_format((float) $entry->rate, 2, '.', '')
         )->map(function ($entries) {
             return [
                 'description' => $entries->first()->description,
@@ -49,23 +53,25 @@ class InvoiceDescriptionService
             );
         }
 
-        $deterministicDescription = "Professional Services for {$periodLabel}\n\n" .
-            $lineItems .
-            "\nTotal Hours: " . number_format($totalHours, 2) .
-            "\nTotal Amount: $" . number_format($totalAmount, 2);
+        $deterministicDescription = "Professional Services for {$periodLabel}\n\n".
+            $lineItems.
+            "\nTotal Hours: ".number_format($totalHours, 2).
+            "\nTotal Amount: $".number_format($totalAmount, 2);
 
-        $aiDescription = static::generateAiDescription(
+        $aiResult = static::generateAiDescription(
             trim($lineItems),
             $totalHours,
             $totalAmount,
             $periodLabel
         );
 
-        $finalDescription = $aiDescription ?: $deterministicDescription;
+        $finalDescription = $aiResult['description'] ?: $deterministicDescription;
 
         return [
             'amount' => $totalAmount,
             'description' => $finalDescription,
+            'used_ai' => $aiResult['description'] !== null,
+            'fallback_reason' => $aiResult['error'],
         ];
     }
 
@@ -74,14 +80,17 @@ class InvoiceDescriptionService
         float $totalHours,
         float $totalAmount,
         string $periodLabel
-    ): ?string {
+    ): array {
         if ($lineItems === '') {
-            return null;
+            return [
+                'description' => null,
+                'error' => null,
+            ];
         }
 
         $isMultiMonth = str_contains($periodLabel, '–');
         $periodWord = $isMultiMonth ? 'period' : 'month';
-        $opener = $isMultiMonth ? "Work this period focused on" : "Work this month focused on";
+        $opener = $isMultiMonth ? 'Work this period focused on' : 'Work this month focused on';
 
         $prompt = implode("\n", [
             'You are a senior software consultant writing an invoice description for a client.',
@@ -90,9 +99,9 @@ class InvoiceDescriptionService
             'Highlight major workstreams, shipped releases, fixes, refactors, integrations, and testing.',
             'Avoid filler, avoid first-person, and avoid dollar amounts. Keep it concise and human.',
             'IMPORTANT: Avoid m-dashes, hyphens, lists, or buzzwords.',
-            'End with a blank line followed by: Total Hours (' . number_format($totalHours, 2, '.', '') . ')',
+            'End with a blank line followed by: Total Hours ('.number_format($totalHours, 2, '.', '').')',
             'Use the billable time entries below as source material; do not invent work.',
-            'For context only (do not mention money), total amount: $' . number_format($totalAmount, 2) . '.',
+            'For context only (do not mention money), total amount: $'.number_format($totalAmount, 2).'.',
             "Billing {$periodWord}: {$periodLabel}.",
             'Billable time entries:',
             $lineItems,
@@ -104,14 +113,22 @@ class InvoiceDescriptionService
 
         try {
             $response = OpenAI::responses()->create([
-                'model' => 'gpt-5-mini',
+                'model' => static::OPENAI_MODEL,
                 'input' => $prompt,
+                'reasoning' => [
+                    'effort' => 'minimal',
+                ],
+                'max_output_tokens' => 700,
+                'store' => false,
             ]);
 
             $text = $response->outputText;
 
             if ($text !== '') {
-                return static::normalizeAiDescription($text, $totalHours);
+                return [
+                    'description' => static::normalizeAiDescription($text, $totalHours),
+                    'error' => null,
+                ];
             }
         } catch (\Throwable $e) {
             Log::warning('AI invoice description generation failed', [
@@ -122,12 +139,20 @@ class InvoiceDescriptionService
                 'timeout' => 'none',
                 'error' => $e->getMessage(),
             ]);
+
+            return [
+                'description' => null,
+                'error' => $e->getMessage(),
+            ];
         } finally {
             static::restoreExecutionTimeLimit($previousMaxExecutionTime);
             static::restoreOpenAiTimeout($previousOpenAiTimeout);
         }
 
-        return null;
+        return [
+            'description' => null,
+            'error' => 'OpenAI returned an empty response.',
+        ];
     }
 
     protected static function setUnlimitedExecutionTime(): int
@@ -187,14 +212,37 @@ class InvoiceDescriptionService
     protected static function normalizeAiDescription(string $text, float $totalHours): string
     {
         $text = trim($text);
-        $totalHoursLine = 'Total Hours (' . number_format($totalHours, 2, '.', '') . ')';
+        $totalHoursLine = 'Total Hours ('.number_format($totalHours, 2, '.', '').')';
 
         $text = preg_replace('/Total Hours \([^)]+\)\s*$/', $totalHoursLine, $text) ?? $text;
 
-        if (!str_ends_with($text, $totalHoursLine)) {
+        if (! str_ends_with($text, $totalHoursLine)) {
             $text .= "\n\n{$totalHoursLine}";
         }
 
         return $text;
+    }
+
+    public static function fallbackReasonForDisplay(?string $reason): ?string
+    {
+        if (! $reason) {
+            return null;
+        }
+
+        $normalizedReason = strtolower($reason);
+
+        if (str_contains($normalizedReason, 'rate limit')) {
+            return 'OpenAI rate limit exceeded.';
+        }
+
+        if (str_contains($normalizedReason, 'timed out') || str_contains($normalizedReason, 'timeout')) {
+            return 'OpenAI request timed out.';
+        }
+
+        if (str_contains($normalizedReason, 'api key')) {
+            return 'OpenAI API key was rejected.';
+        }
+
+        return 'See the application logs for details.';
     }
 }

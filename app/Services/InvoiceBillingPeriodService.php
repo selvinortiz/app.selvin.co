@@ -32,7 +32,7 @@ class InvoiceBillingPeriodService
         $previous = null;
 
         foreach ($billingMonths as $billingMonth) {
-            $current = Carbon::createFromFormat('Y-m', $billingMonth)->startOfMonth();
+            $current = Carbon::createFromFormat('!Y-m', $billingMonth)->startOfMonth();
 
             if ($previous !== null && !$previous->copy()->addMonth()->equalTo($current)) {
                 throw new NonContiguousBillingPeriodException(
@@ -49,8 +49,8 @@ class InvoiceBillingPeriodService
         $normalized = static::normalizeMonthKeys($billingMonths);
 
         return [
-            Carbon::createFromFormat('Y-m', $normalized[0])->startOfMonth(),
-            Carbon::createFromFormat('Y-m', $normalized[array_key_last($normalized)])->startOfMonth(),
+            Carbon::createFromFormat('!Y-m', $normalized[0])->startOfMonth(),
+            Carbon::createFromFormat('!Y-m', $normalized[array_key_last($normalized)])->startOfMonth(),
         ];
     }
 

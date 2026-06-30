@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Services\InvoiceBillingPeriodService;
 use App\Services\MonthContextService;
 use Carbon\Carbon;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -137,8 +138,8 @@ class InvoiceResource extends Resource
             return InvoiceBillingPeriodService::fromMonthKeys($billingMonths);
         } catch (NonContiguousBillingPeriodException) {
             return [
-                Carbon::createFromFormat('Y-m', $billingMonths[0])->startOfMonth(),
-                Carbon::createFromFormat('Y-m', $billingMonths[array_key_last($billingMonths)])->startOfMonth(),
+                Carbon::createFromFormat('!Y-m', $billingMonths[0])->startOfMonth(),
+                Carbon::createFromFormat('!Y-m', $billingMonths[array_key_last($billingMonths)])->startOfMonth(),
             ];
         }
     }
@@ -236,7 +237,7 @@ class InvoiceResource extends Resource
                                     ->sortKeysDesc()
                                     ->mapWithKeys(function ($row) {
                                         $monthKey = $row->first()->date->format('Y-m');
-                                        $label = Carbon::createFromFormat('Y-m', $monthKey)->format('F Y');
+                                        $label = Carbon::createFromFormat('!Y-m', $monthKey)->format('F Y');
                                         $totalHours = $row->sum('hours');
 
                                         return [$monthKey => "{$label} (" . number_format($totalHours, 2) . ' hrs)'];
@@ -384,6 +385,22 @@ class InvoiceResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
+                    Tables\Actions\ReplicateAction::make('duplicate')
+                        ->label('Duplicate')
+                        ->modalHeading(fn (Invoice $record): string => "Duplicate invoice {$record->number}")
+                        ->modalDescription('Create a new draft invoice with the same invoice details. Hours will not be copied or linked.')
+                        ->modalSubmitActionLabel('Duplicate invoice')
+                        ->beforeReplicaSaved(function (Invoice $record, Invoice $replica): void {
+                            $replica->forceFill([
+                                'tenant_id' => Filament::getTenant()?->id ?? $record->tenant_id,
+                                'user_id' => auth()->id() ?? $record->user_id,
+                                'number' => InvoiceNumber::generateUnique($record->client, $record->date),
+                                'sent_at' => null,
+                                'paid_at' => null,
+                            ]);
+                        })
+                        ->successNotificationTitle('Invoice duplicated')
+                        ->successRedirectUrl(fn (Invoice $replica): string => static::getUrl('edit', ['record' => $replica])),
                     Tables\Actions\Action::make('mark_sent')
                         ->label('Mark as Sent')
                         ->icon('heroicon-o-paper-airplane')

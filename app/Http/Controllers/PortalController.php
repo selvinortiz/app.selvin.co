@@ -13,7 +13,7 @@ class PortalController extends Controller
         $client = Client::where('portal_token', $token)->firstOrFail();
 
         $month = request('month')
-            ? Carbon::createFromFormat('Y-m', request('month'))->startOfMonth()
+            ? Carbon::createFromFormat('!Y-m', request('month'))->startOfMonth()
             : Carbon::now()->startOfMonth();
 
         $activeTag = request('tag');

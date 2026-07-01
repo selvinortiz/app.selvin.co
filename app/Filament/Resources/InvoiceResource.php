@@ -391,10 +391,15 @@ class InvoiceResource extends Resource
                         ->modalDescription('Create a new draft invoice with the same invoice details. Hours will not be copied or linked.')
                         ->modalSubmitActionLabel('Duplicate invoice')
                         ->beforeReplicaSaved(function (Invoice $record, Invoice $replica): void {
+                            $billingPeriod = $record->date->copy()->startOfMonth();
+
                             $replica->forceFill([
                                 'tenant_id' => Filament::getTenant()?->id ?? $record->tenant_id,
                                 'user_id' => auth()->id() ?? $record->user_id,
                                 'number' => InvoiceNumber::generateUnique($record->client, $record->date),
+                                'billing_period_start' => null,
+                                'billing_period_end' => null,
+                                'reference' => InvoiceBillingPeriodService::buildReference($billingPeriod),
                                 'sent_at' => null,
                                 'paid_at' => null,
                             ]);

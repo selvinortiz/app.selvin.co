@@ -81,10 +81,11 @@ class InvoiceDuplicateTest extends TestCase
         $this->assertSame($user->id, $duplicate->user_id);
         $this->assertSame($client->id, $duplicate->client_id);
         $this->assertSame('2026-04-01', $duplicate->date->toDateString());
-        $this->assertSame('2026-02-01', $duplicate->billing_period_start->toDateString());
-        $this->assertSame('2026-03-01', $duplicate->billing_period_end->toDateString());
+        $this->assertNull($duplicate->billing_period_start);
+        $this->assertNull($duplicate->billing_period_end);
+        $this->assertSame('April 2026', $duplicate->billing_period_label);
         $this->assertSame('2026-04-16', $duplicate->due_date->toDateString());
-        $this->assertSame('TLFEBMAR2026', $duplicate->reference);
+        $this->assertSame('TLAPR2026', $duplicate->reference);
         $this->assertSame('Manual catch-up invoice description', $duplicate->description);
         $this->assertSame('1200.00', $duplicate->amount);
         $this->assertNull($duplicate->sent_at);
